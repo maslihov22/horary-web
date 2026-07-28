@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { HOUSE_LABELS } from "./houses";
+import { PlacePicker } from "./PlacePicker";
+import type { Place } from "./ReadingView";
 import styles from "./page.module.css";
 
 interface Confirm {
@@ -20,11 +22,15 @@ interface Confirm {
  */
 export function TopicConfirm({
   confirm,
+  place,
+  onPlaceChange,
   onConfirm,
   onChoose,
   onCancel,
 }: {
   confirm: Confirm;
+  place: Place | null;
+  onPlaceChange: (p: Place) => void;
   onConfirm: () => void;
   onChoose: (house: number) => void;
   onCancel: () => void;
@@ -51,6 +57,7 @@ export function TopicConfirm({
               No — it&rsquo;s about something else
             </button>
           </div>
+          {place && <PlacePicker place={place} onChange={onPlaceChange} />}
         </>
       ) : (
         <>

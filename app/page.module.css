@@ -186,6 +186,84 @@
   background: color-mix(in srgb, var(--gold) 7%, transparent);
 }
 
+/* ── where the chart is cast ── */
+.placeLine {
+  margin: 14px 0 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: .04em;
+  color: var(--muted);
+}
+.placeName { color: var(--fg); }
+.placeEdit, .placeCancel {
+  background: none;
+  border: none;
+  padding: 0 0 0 10px;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--hair);
+  cursor: pointer;
+}
+.placeEdit:hover, .placeCancel:hover { color: var(--gold); text-decoration-color: var(--gold); }
+
+.placeEditor { margin-top: 14px; }
+.placeLabel {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+.placeInput {
+  width: 100%;
+  max-width: 340px;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 2px;
+  padding: 10px 13px;
+  color: var(--fg);
+  font-family: var(--font-body), Georgia, serif;
+  font-size: 15px;
+}
+.placeInput:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; border-color: var(--gold); }
+.placeHint {
+  margin: 7px 0 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.placeHits {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  max-width: 340px;
+  border: 1px solid var(--hair);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.placeHit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--panel-line);
+  padding: 10px 13px;
+  color: var(--fg);
+  font-family: var(--font-body), Georgia, serif;
+  font-size: 14.5px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.placeHits li:last-child .placeHit { border-bottom: none; }
+.placeHit:hover { background: color-mix(in srgb, var(--gold) 8%, transparent); }
+.placeCancel { display: inline-block; margin-top: 10px; padding-left: 0; }
+
 .castingNote, .errorNote {
   margin-top: 18px;
   font-family: var(--font-mono), monospace;

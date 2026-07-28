@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Reading } from "./reading";
 import type { PlanetName } from "@/engine";
@@ -22,6 +22,14 @@ const SIGN_GLYPH: Record<string, string> = {
 };
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
 
+/** The moment of the question, in the querent's own local time. */
+function formatMoment(iso: string): string {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return `${date} · ${time}`;
+}
+
 const VERDICT_WORD: Record<Reading["verdict"]["verdict"], string> = {
   yes: "Yes.",
   no: "No.",
@@ -34,6 +42,15 @@ interface CastReading extends Reading {
   house: number;
   narration: string;
   fallback: boolean;
+  place: Place;
+  moment: string;
+}
+
+export interface Place {
+  lat: number;
+  lon: number;
+  label: string;
+  known: boolean;
 }
 
 interface Confirm {
@@ -41,6 +58,7 @@ interface Confirm {
   topic: string;
   confidence: number;
   label: string;
+  place: Place;
 }
 
 type Stage =
@@ -54,6 +72,10 @@ export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQ
   const [question, setQuestion] = useState("");
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [cast, setCast] = useState<CastReading | null>(null);
+  // The moment the question was asked — stamped on submit, not when the topic
+  // is confirmed, so the seconds spent classifying cannot move the ascendant.
+  const askedAt = useRef<string | null>(null);
+  const [place, setPlace] = useState<Place | null>(null);
 
   const busy = stage.kind === "classifying" || stage.kind === "casting";
 
@@ -71,24 +93,28 @@ export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQ
   async function ask(e: React.FormEvent) {
     e.preventDefault();
     if (!question.trim() || busy) return;
+    // The horary belongs to this instant — the one the querent chose to ask.
+    askedAt.current = new Date().toISOString();
     setStage({ kind: "classifying" });
     setCast(null);
     try {
       const data = await post({ question: question.trim() });
+      setPlace(data.place ?? null);
       setStage({ kind: "confirm", confirm: data });
     } catch (err) {
       setStage({ kind: "error", message: err instanceof Error ? err.message : "Something went wrong." });
     }
   }
 
-  // The querent has settled the topic — cast for this moment, here.
-  async function castFor(house: number) {
+  // The querent has settled the topic — cast for the moment they asked.
+  async function castFor(house: number, where: Place | null = place) {
     setStage({ kind: "casting" });
     try {
       const data = await post({
         question: question.trim(),
         house,
-        utc: new Date().toISOString(),
+        utc: askedAt.current ?? new Date().toISOString(),
+        ...(where ? { lat: where.lat, lon: where.lon, placeLabel: where.label } : {}),
       });
       setCast(data);
       setStage({ kind: "idle" });
@@ -133,6 +159,8 @@ export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQ
         {stage.kind === "confirm" && (
           <TopicConfirm
             confirm={stage.confirm}
+            place={place}
+            onPlaceChange={setPlace}
             onConfirm={() => castFor(stage.confirm.house)}
             onChoose={(house) => castFor(house)}
             onCancel={() => setStage({ kind: "idle" })}
@@ -162,9 +190,9 @@ export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQ
           <div className={styles.chartHead}>
             <span className={styles.q}>{shownQuestion}</span>
             <span className={styles.meta}>
-              {cast ? "cast for this moment" : "27 Jun 1646 · 07:33 LMT"}
+              {cast ? formatMoment(cast.moment) : "27 Jun 1646 · 07:33 LMT"}
               <br />
-              London · Regiomontanus
+              {cast ? cast.place.label : "London"} · Regiomontanus
             </span>
           </div>
           <HoraryChart data={shown.chart} />
