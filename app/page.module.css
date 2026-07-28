@@ -23,6 +23,8 @@
   color: var(--muted);
 }
 .brand b { color: var(--fg); font-weight: 600; }
+a.brand { text-decoration: none; transition: color .2s; }
+a.brand:hover { color: var(--fg); }
 
 /* Day/night: the two luminaries on a ruled track, the gold thumb sliding
    between them like a marker on an instrument. */
@@ -499,13 +501,70 @@
   color: var(--muted);
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 981px) {
+  /* The figure is drawn alone and centred; once the testimonies have been
+     weighed it slides aside and the judgment takes the space beside it. The
+     grid animates from one column to two, so the chart appears to move rather
+     than to be replaced. */
   .layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 48px;
+    grid-template-columns: minmax(0, 1fr) 0px;
+    gap: 0;
     align-items: center;
+    justify-items: center;
+    transition: grid-template-columns .7s cubic-bezier(.4, 0, .2, 1), gap .7s ease;
   }
-  /* in two-column view the chart fills its whole column */
+  .layoutJudged {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 48px;
+    justify-items: stretch;
+  }
+  .figure {
+    width: 100%;
+    max-width: 620px;
+    transition: max-width .7s cubic-bezier(.4, 0, .2, 1);
+  }
+  .layoutJudged .figure { max-width: none; }
   .figure :global(#horary-paper) { max-width: none; }
+
+  /* Held at zero width while the chart draws, so nothing of the judgment
+     shows through early. */
+  .panel {
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity .45s ease .25s;
+  }
+  .layoutJudged .panel { opacity: 1; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .layout, .figure, .panel { transition: none; }
+}
+
+/* Below the wide breakpoint there is no sideways move to make: the judgment
+   simply arrives under the chart, and the view is carried down to it. */
+@media (max-width: 980px) {
+  .panel {
+    animation: riseIn .5s ease-out;
+  }
+}
+
+/* Placeholder while the figure is still being drawn. */
+.weighing {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.weighing::after {
+  content: "";
+  animation: ellipsis 1.4s steps(4, end) infinite;
+}
+
+/* Once the figure is up, the asking block collapses to just the field. */
+.askDone {
+  margin-bottom: 8px;
+}
+.askDone .form { margin-top: 0; }

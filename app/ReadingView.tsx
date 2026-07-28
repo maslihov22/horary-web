@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Reading } from "./reading";
 import type { PlanetName } from "@/engine";
@@ -22,29 +22,14 @@ const SIGN_GLYPH: Record<string, string> = {
 };
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
 
-/** The moment of the question, in the querent's own local time. */
-function formatMoment(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  return `${date} · ${time}`;
-}
-
 const VERDICT_WORD: Record<Reading["verdict"]["verdict"], string> = {
   yes: "Yes.",
   no: "No.",
   qualified: "With conditions.",
 };
 
-/** What the API returns once a house is confirmed. */
-interface CastReading extends Reading {
-  question: string;
-  house: number;
-  narration: string;
-  fallback: boolean;
-  place: Place;
-  moment: string;
-}
+/** How long the chart is left alone to draw itself before the judgment joins it. */
+const DRAW_TIME = 2600;
 
 export interface Place {
   lat: number;
@@ -61,14 +46,33 @@ interface Confirm {
   place: Place;
 }
 
+interface CastReading extends Reading {
+  question: string;
+  house: number;
+  narration: string;
+  fallback: boolean;
+  place: Place;
+  moment: string;
+}
+
 type Stage =
   | { kind: "idle" }
   | { kind: "classifying" }
   | { kind: "confirm"; confirm: Confirm }
   | { kind: "casting" }
+  | { kind: "drawn" }   // chart is up and drawing, judgment still withheld
+  | { kind: "judged" }  // chart has slid aside, judgment is in
   | { kind: "error"; message: string };
 
-export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQuestion: string }) {
+/** The moment of the question, in the querent's own local time. */
+function formatMoment(iso: string): string {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return `${date} · ${time}`;
+}
+
+export function ReadingView() {
   const [question, setQuestion] = useState("");
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [cast, setCast] = useState<CastReading | null>(null);
@@ -76,8 +80,32 @@ export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQ
   // is confirmed, so the seconds spent classifying cannot move the ascendant.
   const askedAt = useRef<string | null>(null);
   const [place, setPlace] = useState<Place | null>(null);
+  const figureRef = useRef<HTMLDivElement>(null);
 
   const busy = stage.kind === "classifying" || stage.kind === "casting";
+  const hasFigure = stage.kind === "drawn" || stage.kind === "judged";
+  const judged = stage.kind === "judged";
+
+  // Let the figure draw before the verdict arrives. The judgment is the thing
+  // the querent came for, and it lands better after they have watched it being
+  // worked out than if both appear at once.
+  useEffect(() => {
+    if (stage.kind !== "drawn") return;
+    const t = setTimeout(() => setStage({ kind: "judged" }), DRAW_TIME);
+    return () => clearTimeout(t);
+  }, [stage.kind]);
+
+  // On a narrow screen the judgment appears below the fold rather than beside
+  // the chart, so carry the querent to it.
+  useEffect(() => {
+    if (stage.kind !== "judged") return;
+    if (window.matchMedia("(min-width: 981px)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = setTimeout(() => {
+      document.getElementById("judgment")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 260);
+    return () => clearTimeout(t);
+  }, [stage.kind]);
 
   async function post(body: Record<string, unknown>) {
     const res = await fetch("/api/reading", {
@@ -117,29 +145,41 @@ export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQ
         ...(where ? { lat: where.lat, lon: where.lon, placeLabel: where.label } : {}),
       });
       setCast(data);
-      setStage({ kind: "idle" });
+      setStage({ kind: "drawn" });
+      // Bring the figure into view; it is drawn below the asking field.
+      requestAnimationFrame(() => {
+        figureRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
     } catch (err) {
       setStage({ kind: "error", message: err instanceof Error ? err.message : "Something went wrong." });
     }
   }
 
-  // Until a real reading exists, the page shows Lilly's own 1646 judgment.
-  const shown: Reading = cast ?? reading;
-  const shownQuestion = cast ? cast.question : demoQuestion;
-  const shownHouse = cast ? cast.house : 7;
-  const v = shown.verdict;
+  function askAnother() {
+    setCast(null);
+    setQuestion("");
+    setStage({ kind: "idle" });
+    askedAt.current = null;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const v = cast?.verdict;
 
   return (
     <>
-      <section className={styles.ask}>
-        <div className={styles.kicker}>Ask one clear question</div>
-        <h1 className={styles.h1}>
-          The chart answers <em>the question asked.</em>
-        </h1>
-        <p className={styles.sub}>
-          A horary is cast for the moment a question is truly asked, and judged by the traditional
-          rules set down by William Lilly in 1647. Phrase one thing you genuinely want to know.
-        </p>
+      <section className={`${styles.ask} ${hasFigure ? styles.askDone : ""}`}>
+        {!hasFigure && (
+          <>
+            <div className={styles.kicker}>Ask one clear question</div>
+            <h1 className={styles.h1}>
+              The chart answers <em>the question asked.</em>
+            </h1>
+            <p className={styles.sub}>
+              A horary is cast for the moment a question is truly asked, and judged by the
+              traditional rules set down by William Lilly in 1647.
+            </p>
+          </>
+        )}
 
         <form className={styles.form} onSubmit={ask}>
           <input
@@ -149,11 +189,18 @@ export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQ
             placeholder="Will I get the position I applied for?"
             aria-label="Your question"
             maxLength={300}
-            disabled={busy}
+            disabled={busy || hasFigure}
           />
-          <button type="submit" className={styles.cast} disabled={busy || !question.trim()}>
-            {stage.kind === "classifying" ? "Reading it…" : "Cast the chart"}
-          </button>
+          {!hasFigure && (
+            <button type="submit" className={styles.cast} disabled={busy || !question.trim()}>
+              {stage.kind === "classifying" ? "Reading it…" : "Cast the chart"}
+            </button>
+          )}
+          {hasFigure && (
+            <button type="button" className={styles.notIt} onClick={askAnother}>
+              Ask another
+            </button>
+          )}
         </form>
 
         {stage.kind === "confirm" && (
@@ -176,86 +223,92 @@ export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQ
             {stage.message}
           </p>
         )}
-
-        {!cast && stage.kind === "idle" && (
-          <p className={styles.demoNote}>
-            Shown below: the reading Lilly himself judged in 1646 — a worked example, computed by the
-            same engine.
-          </p>
-        )}
       </section>
 
-      <section className={styles.layout}>
-        <figure className={styles.figure}>
-          <div className={styles.chartHead}>
-            <span className={styles.q}>{shownQuestion}</span>
-            <span className={styles.meta}>
-              {cast ? formatMoment(cast.moment) : "27 Jun 1646 · 07:33 LMT"}
-              <br />
-              {cast ? cast.place.label : "London"} · Regiomontanus
-            </span>
-          </div>
-          <HoraryChart data={shown.chart} />
-          <div className={styles.legend}>
-            <span>
-              <i className={styles.swatch} style={{ borderColor: "var(--verdigris)" }} />
-              trine · sextile
-            </span>
-            <span>
-              <i className={styles.swatch} style={{ borderColor: "var(--vermilion)" }} />
-              square · opposition
-            </span>
-            <span>
-              <i className={styles.swatch} style={{ borderColor: "var(--gold)" }} />
-              translation of light
-            </span>
-          </div>
-        </figure>
+      {cast && v && (
+        <section className={`${styles.layout} ${judged ? styles.layoutJudged : ""}`}>
+          <figure className={styles.figure} ref={figureRef}>
+            <div className={styles.chartHead}>
+              <span className={styles.q}>{cast.question}</span>
+              <span className={styles.meta}>
+                {formatMoment(cast.moment)}
+                <br />
+                {cast.place.label} · Regiomontanus
+              </span>
+            </div>
+            <HoraryChart data={cast.chart} />
+            <div className={styles.legend}>
+              <span>
+                <i className={styles.swatch} style={{ borderColor: "var(--verdigris)" }} />
+                trine · sextile
+              </span>
+              <span>
+                <i className={styles.swatch} style={{ borderColor: "var(--vermilion)" }} />
+                square · opposition
+              </span>
+              <span>
+                <i className={styles.swatch} style={{ borderColor: "var(--gold)" }} />
+                translation of light
+              </span>
+            </div>
+          </figure>
 
-        <aside className={styles.panel}>
-          <h2 className={styles.panelH}>Judgment</h2>
-          <div
-            className={styles.verdictWord}
-            style={{ color: v.verdict === "no" ? "var(--vermilion)" : "var(--verdigris)" }}
+          <aside
+            id="judgment"
+            className={styles.panel}
+            aria-live="polite"
+            aria-busy={!judged}
           >
-            {VERDICT_WORD[v.verdict]}
-          </div>
+            {!judged ? (
+              <p className={styles.weighing}>Weighing the testimonies</p>
+            ) : (
+              <>
+                <h2 className={styles.panelH}>Judgment</h2>
+                <div
+                  className={styles.verdictWord}
+                  style={{ color: v.verdict === "no" ? "var(--vermilion)" : "var(--verdigris)" }}
+                >
+                  {VERDICT_WORD[v.verdict]}
+                </div>
 
-          <div className={styles.sigRow}>
-            <div className={styles.sig}>
-              <div className={styles.role}>Querent · I</div>
-              <div className={styles.who}>
-                {GLYPH[shown.querent.planet]} {shown.querent.planet}
-              </div>
-              <div className={styles.pos}>
-                {shown.querent.deg}°{shown.querent.min.toString().padStart(2, "0")}′{" "}
-                {SIGN_GLYPH[shown.querent.sign]} {shown.querent.sign}
-              </div>
-            </div>
-            <div className={styles.sig}>
-              <div className={styles.role}>Quesited · {ROMAN[shownHouse]}</div>
-              <div className={styles.who}>
-                {GLYPH[shown.quesited.planet]} {shown.quesited.planet}
-              </div>
-              <div className={styles.pos}>
-                {shown.quesited.deg}°{shown.quesited.min.toString().padStart(2, "0")}′{" "}
-                {SIGN_GLYPH[shown.quesited.sign]} {shown.quesited.sign}
-              </div>
-            </div>
-          </div>
+                <div className={styles.sigRow}>
+                  <div className={styles.sig}>
+                    <div className={styles.role}>Querent · I</div>
+                    <div className={styles.who}>
+                      {GLYPH[cast.querent.planet]} {cast.querent.planet}
+                    </div>
+                    <div className={styles.pos}>
+                      {cast.querent.deg}°{cast.querent.min.toString().padStart(2, "0")}′{" "}
+                      {SIGN_GLYPH[cast.querent.sign]} {cast.querent.sign}
+                    </div>
+                  </div>
+                  <div className={styles.sig}>
+                    <div className={styles.role}>Quesited · {ROMAN[cast.house]}</div>
+                    <div className={styles.who}>
+                      {GLYPH[cast.quesited.planet]} {cast.quesited.planet}
+                    </div>
+                    <div className={styles.pos}>
+                      {cast.quesited.deg}°{cast.quesited.min.toString().padStart(2, "0")}′{" "}
+                      {SIGN_GLYPH[cast.quesited.sign]} {cast.quesited.sign}
+                    </div>
+                  </div>
+                </div>
 
-          {cast && <div className={styles.narration}>{cast.narration}</div>}
+                <div className={styles.narration}>{cast.narration}</div>
 
-          {cast && <div className={styles.workingHead}>The testimonies</div>}
-          <ul className={styles.reasons}>
-            {v.reasons.map((r, i) => (
-              <li key={i}>{r}</li>
-            ))}
-          </ul>
+                <div className={styles.workingHead}>The testimonies</div>
+                <ul className={styles.reasons}>
+                  {v.reasons.map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                </ul>
 
-          {v.timing && <div className={styles.timing}>Perfects {v.timing}</div>}
-        </aside>
-      </section>
+                {v.timing && <div className={styles.timing}>Perfects {v.timing}</div>}
+              </>
+            )}
+          </aside>
+        </section>
+      )}
     </>
   );
 }
