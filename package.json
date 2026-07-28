@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync:engine": "node scripts/sync-engine.mjs",
+    "check:engine": "node scripts/sync-engine.mjs --check"
   },
   "dependencies": {
     "@astrodraw/astrochart": "^3.0.2",
