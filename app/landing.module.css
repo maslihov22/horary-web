@@ -39,7 +39,6 @@
 /* ── 1. hero ── */
 .hero {
   padding: clamp(60px, 12vh, 130px) 0 clamp(50px, 9vh, 100px);
-  max-width: 40ch;
 }
 .h1 {
   font-family: var(--font-display), Georgia, serif;
@@ -48,15 +47,34 @@
   line-height: .98;
   letter-spacing: -.02em;
   margin: 0 0 .34em;
-  text-wrap: balance;
+  /* The line breaks are set by hand in the markup, so neither a measure nor
+     balancing is imposed here — a ch-based cap meant for paragraphs squeezed
+     this 92px display face into four lines and left half the screen empty. */
 }
 .h1 em { font-style: italic; color: var(--muted); }
 .lede {
   font-size: clamp(17px, 2vw, 20px);
   line-height: 1.6;
   color: var(--muted);
-  max-width: 54ch;
+  max-width: 46ch;
   margin: 0 0 34px;
+}
+
+/* Wide screens: the display line holds the left, the argument and the button
+   take the right. Otherwise a two-line hero leaves half the viewport empty. */
+@media (min-width: 1000px) {
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr);
+    gap: 0 clamp(40px, 5vw, 80px);
+    align-items: end;
+  }
+  .kicker { grid-column: 1 / -1; }
+  .h1 { grid-column: 1; margin-bottom: 0; align-self: start; }
+  .heroSide {
+    grid-column: 2;
+    padding-bottom: 6px;
+  }
 }
 
 .cta {
@@ -110,6 +128,24 @@
   background: color-mix(in srgb, var(--gold) 3.5%, transparent);
 }
 .bandInner { max-width: 1128px; margin: 0 auto; }
+
+/* Wide screens: heading holds the left column, the prose runs down the right.
+   Prose must stay near 60 characters to be readable, so on a 1128px container
+   it cannot simply fill the width — without a second column the band leaves
+   some 600px of empty gutter beside it. */
+@media (min-width: 900px) {
+  .bandInner {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
+    column-gap: clamp(40px, 6vw, 90px);
+    align-items: start;
+  }
+  .bandInner .kicker { grid-column: 1 / -1; }
+  .bandInner .h2 { grid-column: 1; margin-bottom: 0; }
+  .bandProse { grid-column: 2; }
+  /* The figures below span the full width, under both columns. */
+  .bandInner .facts { grid-column: 1 / -1; max-width: none; }
+}
 
 /* ── 3. how it works ── */
 .steps {

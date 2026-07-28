@@ -31,32 +31,36 @@ export default function Home() {
           One question.<br />
           <em>One straight answer.</em>
         </h1>
-        <p className={styles.lede}>
-          Not a horoscope for everyone born in April. A chart cast for the exact moment you
-          ask, read against rules written down in 1647, and answered yes, no, or with
-          conditions — with the reasoning shown.
-        </p>
-        <Link href="/ask" className={styles.cta}>
-          Ask your question
-        </Link>
-        <p className={styles.ctaNote}>Free · no account · about a minute</p>
+        <div className={styles.heroSide}>
+          <p className={styles.lede}>
+            Not a horoscope for everyone born in April. A chart cast for the exact moment
+            you ask, read against rules written down in 1647, and answered yes, no, or with
+            conditions — with the reasoning shown.
+          </p>
+          <Link href="/ask" className={styles.cta}>
+            Ask your question
+          </Link>
+          <p className={styles.ctaNote}>Free · no account · about a minute</p>
+        </div>
       </section>
 
       {/* 2 — the problem, named as the reader has felt it */}
       <section className={styles.band}>
         <div className={styles.bandInner}>
           <h2 className={styles.h2}>You asked about the job. It answered about your journey.</h2>
-          <p className={styles.body}>
-            Most astrology apps read your birth chart and produce something that fits any
-            life on any day. Warm, vague, unfalsifiable. You wanted to know whether to take
-            the offer, and you got a paragraph about growth.
-          </p>
-          <p className={styles.body}>
-            Horary is the older, narrower practice, and it does the opposite. It answers the
-            single question you actually asked, at the moment you cared enough to ask it —
-            and it is specific enough to be wrong, which is what makes an answer worth
-            having.
-          </p>
+          <div className={styles.bandProse}>
+            <p className={styles.body}>
+              Most astrology apps read your birth chart and produce something that fits any
+              life on any day. Warm, vague, unfalsifiable. You wanted to know whether to
+              take the offer, and you got a paragraph about growth.
+            </p>
+            <p className={styles.body}>
+              Horary is the older, narrower practice, and it does the opposite. It answers
+              the single question you actually asked, at the moment you cared enough to ask
+              it — and it is specific enough to be wrong, which is what makes an answer
+              worth having.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -98,19 +102,21 @@ export default function Home() {
         <div className={styles.bandInner}>
           <p className={styles.kicker}>Why this is not another AI horoscope</p>
           <h2 className={styles.h2}>The answer is computed. Only the wording is written.</h2>
-          <p className={styles.body}>
-            A language model asked to do astrology will produce something plausible every
-            time, including when it is nonsense — there is nothing underneath to be right
-            or wrong about.
-          </p>
-          <p className={styles.body}>
-            Here the judgment comes from a deterministic engine implementing Lilly&rsquo;s
-            rules in code: the same chart always yields the same verdict, and every verdict
-            can be traced to the testimonies that produced it. The model is handed that
-            finished judgment and allowed to do one thing — put it into readable English.
-            It cannot change the answer, and it is forbidden to mention any fact the engine
-            did not give it.
-          </p>
+          <div className={styles.bandProse}>
+            <p className={styles.body}>
+              A language model asked to do astrology will produce something plausible every
+              time, including when it is nonsense — there is nothing underneath to be right
+              or wrong about.
+            </p>
+            <p className={styles.body}>
+              Here the judgment comes from a deterministic engine implementing
+              Lilly&rsquo;s rules in code: the same chart always yields the same verdict,
+              and every verdict can be traced to the testimonies that produced it. The
+              model is handed that finished judgment and allowed to do one thing — put it
+              into readable English. It cannot change the answer, and it is forbidden to
+              mention any fact the engine did not give it.
+            </p>
+          </div>
           <ul className={styles.facts}>
             <li>
               <b>80</b>
