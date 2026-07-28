@@ -44,6 +44,24 @@ export function placeFromHeaders(h: Headers): Place {
   const lon = Number(h.get("x-vercel-ip-longitude"));
 
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || (lat === 0 && lon === 0)) {
+    // The geolocation headers only exist on Vercel. Without a stand-in, every
+    // local reading is silently cast for Greenwich — which is a different
+    // chart, not a cosmetic default. HORARY_DEV_PLACE fills the gap:
+    //   HORARY_DEV_PLACE="47.009,28.859,Chișinău"
+    const dev = process.env.HORARY_DEV_PLACE;
+    if (dev) {
+      const [dLat, dLon, ...rest] = dev.split(",");
+      const la = Number(dLat);
+      const lo = Number(dLon);
+      if (Number.isFinite(la) && Number.isFinite(lo) && Math.abs(la) <= 90 && Math.abs(lo) <= 180) {
+        return {
+          lat: la,
+          lon: lo,
+          label: rest.join(",").trim() || "your location",
+          known: true,
+        };
+      }
+    }
     return UNKNOWN_PLACE;
   }
 

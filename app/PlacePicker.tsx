@@ -69,14 +69,19 @@ export function PlacePicker({
   return (
     <div className={styles.placeEditor}>
       <label className={styles.placeLabel} htmlFor="place-q">
-        {place.known ? "Where are you?" : "We could not tell where you are — which city?"}
+        {place.known ? "Where are you?" : "Where are you asking from?"}
       </label>
+      {!place.known && (
+        <p className={styles.placeWhy}>
+          The chart is cast for your own horizon — a different city gives a different figure.
+        </p>
+      )}
       <input
         id="place-q"
         className={styles.placeInput}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Chișinău"
+        placeholder="Type a city…"
         autoComplete="off"
         autoFocus
       />

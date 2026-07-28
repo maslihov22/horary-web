@@ -274,6 +274,13 @@ a.brand:hover { color: var(--fg); }
   color: var(--muted);
   margin-bottom: 7px;
 }
+.placeWhy {
+  margin: 0 0 9px;
+  max-width: 44ch;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
 .placeInput {
   width: 100%;
   max-width: 340px;
