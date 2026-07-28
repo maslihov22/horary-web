@@ -28,8 +28,11 @@ const VERDICT_WORD: Record<Reading["verdict"]["verdict"], string> = {
   qualified: "With conditions.",
 };
 
-/** How long the chart is left alone to draw itself before the judgment joins it. */
-const DRAW_TIME = 2600;
+/** A beat between the figure finishing and the judgment arriving. */
+const SETTLE = 400;
+
+/** If the chart never reports back, the judgment must not be lost with it. */
+const DRAW_CEILING = 12000;
 
 export interface Place {
   lat: number;
@@ -86,14 +89,20 @@ export function ReadingView() {
   const hasFigure = stage.kind === "drawn" || stage.kind === "judged";
   const judged = stage.kind === "judged";
 
-  // Let the figure draw before the verdict arrives. The judgment is the thing
-  // the querent came for, and it lands better after they have watched it being
-  // worked out than if both appear at once.
+  // The judgment waits for the figure to finish drawing — the chart reports
+  // when that is, since its length depends on how many elements it emitted.
+  // The ceiling is only a guard against a draw that never reports.
   useEffect(() => {
     if (stage.kind !== "drawn") return;
-    const t = setTimeout(() => setStage({ kind: "judged" }), DRAW_TIME);
+    const t = setTimeout(() => setStage({ kind: "judged" }), DRAW_CEILING);
     return () => clearTimeout(t);
   }, [stage.kind]);
+
+  function figureDrawn() {
+    setTimeout(() => {
+      setStage((s) => (s.kind === "drawn" ? { kind: "judged" } : s));
+    }, SETTLE);
+  }
 
   // On a narrow screen the judgment appears below the fold rather than beside
   // the chart, so carry the querent to it.
@@ -236,7 +245,7 @@ export function ReadingView() {
                 {cast.place.label} · Regiomontanus
               </span>
             </div>
-            <HoraryChart data={cast.chart} />
+            <HoraryChart data={cast.chart} onDrawn={figureDrawn} />
             <div className={styles.legend}>
               <span>
                 <i className={styles.swatch} style={{ borderColor: "var(--verdigris)" }} />

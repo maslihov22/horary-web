@@ -16,21 +16,42 @@ function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-export function HoraryChart({ data, animate = true }: { data: ChartData; animate?: boolean }) {
+export function HoraryChart({
+  data,
+  animate = true,
+  onDrawn,
+}: {
+  data: ChartData;
+  animate?: boolean;
+  /** Fires when the figure is fully drawn — the draw's length depends on how
+      many elements astrochart emits, so it cannot be timed from outside. */
+  onDrawn?: () => void;
+}) {
   const paperRef = useRef<HTMLDivElement>(null);
   const didAnimate = useRef(false);
   const { resolvedTheme } = useTheme();
+  // Keep `onDrawn` out of the draw effect's deps: a caller passing an inline
+  // arrow would otherwise redraw the whole chart on every render.
+  const drawnRef = useRef(onDrawn);
+  useEffect(() => {
+    drawnRef.current = onDrawn;
+  }, [onDrawn]);
 
   useEffect(() => {
     const paper = paperRef.current;
     if (!paper) return;
 
     let timer = 0;
+    let done = 0;
     // Read CSS variables and draw only AFTER the browser has applied the
     // current theme (next-themes just changed data-theme). Reading synchronously
     // here races the cascade and picks up the previous theme's colors.
     const raf = requestAnimationFrame(() => {
       paper.innerHTML = "";
+      // astrochart renders the figure complete and visible; the draw-on is
+      // applied a tick later. Without hiding the node first, that tick shows
+      // as a flash of the finished chart before it starts drawing.
+      paper.style.visibility = "hidden";
 
       const fg = cssVar("--fg");
       const muted = cssVar("--muted");
@@ -84,7 +105,13 @@ export function HoraryChart({ data, animate = true }: { data: ChartData; animate
 
     timer = window.setTimeout(() => {
       const svg = paper.querySelector("svg");
-      if (!svg) return;
+      if (!svg) {
+        // Nothing to animate — never leave the figure hidden or the caller
+        // waiting on a draw that will not finish.
+        paper.style.visibility = "visible";
+        drawnRef.current?.();
+        return;
+      }
       const vb = svg.viewBox.baseVal;
       const cx = vb.width / 2;
       const cy = vb.height / 2;
@@ -124,7 +151,11 @@ export function HoraryChart({ data, animate = true }: { data: ChartData; animate
         !didAnimate.current &&
         !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       didAnimate.current = true;
-      if (!shouldAnimate) return;
+      if (!shouldAnimate) {
+        paper.style.visibility = "visible";
+        drawnRef.current?.();
+        return;
+      }
 
       // draw-on: the hand casts the figure. Only the large structure (rings and
       // house lines) is "drawn" by stroke-dash. Glyph paths and text labels fade
@@ -166,17 +197,29 @@ export function HoraryChart({ data, animate = true }: { data: ChartData; animate
         l.style.animation = "hDraw 0.9s ease forwards";
         l.style.animationDelay = `${d + 0.2 + i * 0.15}s`;
       });
+      let lastEnd = d + 1.1; // last stroke's delay plus its duration
       symbols.forEach((tEl, i) => {
         tEl.style.opacity = "0";
         tEl.style.animation = "hFade 0.6s ease forwards";
-        tEl.style.animationDelay = `${d * 0.55 + i * 0.02}s`;
+        const delay = d * 0.55 + i * 0.02;
+        tEl.style.animationDelay = `${delay}s`;
+        lastEnd = Math.max(lastEnd, delay + 0.6);
       });
+
+      // Everything is styled for the draw; safe to show now.
+      paper.style.visibility = "visible";
+
+      // The figure's length is whatever the schedule above adds up to — a
+      // hundred-odd elements at 45ms apart runs far longer than any fixed
+      // guess would. Report the real end so the judgment waits for it.
+      done = window.setTimeout(() => drawnRef.current?.(), lastEnd * 1000);
       }, 30);
     });
 
     return () => {
       cancelAnimationFrame(raf);
       window.clearTimeout(timer);
+      window.clearTimeout(done);
     };
   }, [data, animate, resolvedTheme]);
 
