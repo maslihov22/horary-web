@@ -24,20 +24,73 @@
 }
 .brand b { color: var(--fg); font-weight: 600; }
 
+/* Day/night: the two luminaries on a ruled track, the gold thumb sliding
+   between them like a marker on an instrument. */
 .toggle {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 12px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
+  --thumb: 22px;
+  --pad: 4px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: var(--pad);
   background: transparent;
-  color: var(--fg);
   border: 1px solid var(--hair);
-  border-radius: 2px;
-  padding: 8px 14px;
+  border-radius: 999px;
   cursor: pointer;
-  transition: border-color .2s;
+  line-height: 1;
+  transition: border-color .25s;
+  -webkit-tap-highlight-color: transparent;
 }
 .toggle:hover { border-color: var(--gold); }
+.toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* Each glyph occupies a box exactly the size of the thumb and centres itself
+   inside it, so the thumb and the glyph share a centre by construction — the
+   sun and moon characters are not the same width, and eyeballing the padding
+   leaves them visibly off. */
+.toggleGlyph {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--thumb);
+  height: var(--thumb);
+  font-size: 14px;
+  color: var(--muted);
+  transition: color .25s;
+}
+/* Optical, not geometric: the moon character is drawn off-centre within its
+   own advance width, so centring the box still reads as crooked. */
+.toggleGlyph:nth-of-type(2) { text-indent: 1px; }
+
+/* The luminary in force sits on the gold thumb and takes ink, in both themes:
+   parchment on light gold measures 2.56:1, which is too faint to read, while
+   ink holds 5.4:1 on the light gold and 7.8:1 on the dark. */
+.toggle[data-mounted]:not([data-dark]) .toggleGlyph:first-of-type,
+.toggle[data-dark] .toggleGlyph:nth-of-type(2) {
+  color: #14110C;
+}
+
+.toggleThumb {
+  position: absolute;
+  top: var(--pad);
+  left: var(--pad);
+  width: var(--thumb);
+  height: var(--thumb);
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0;
+  transition: transform .32s cubic-bezier(.4, 1.3, .5, 1), opacity .2s;
+}
+.toggle[data-mounted] .toggleThumb { opacity: 1; }
+/* One glyph-box across — the boxes sit flush, so this lands dead centre. */
+.toggle[data-dark] .toggleThumb { transform: translateX(var(--thumb)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .toggleThumb { transition: opacity .2s; }
+}
 
 /* ── ask / hero ── */
 .ask { margin: 54px 0 8px; }
