@@ -3,6 +3,7 @@ import {
   buildChart,
   judge,
   signOf,
+  rulerOfHouse,
   type PlanetName,
   type Verdict,
 } from "@/engine";
@@ -18,6 +19,21 @@ export interface Reading {
   positions: { name: PlanetName; sign: string; deg: number; min: number }[];
   querent: { planet: PlanetName; sign: string; deg: number; min: number };
   quesited: { planet: PlanetName; sign: string; deg: number; min: number };
+}
+
+// The gold thread on the chart marks a translation of light. The engine reports
+// it in prose ("Jupiter translates the light of Saturn to Sun"), so read the
+// translator back out of that line rather than assuming Lilly's case.
+function translationOf(
+  verdict: Verdict,
+  querent: PlanetName,
+  quesited: PlanetName,
+): ChartData["translation"] {
+  const line = verdict.reasons.find((r) => /translates the light/i.test(r));
+  if (!line) return undefined;
+  const via = PLANETS.find((p) => line.startsWith(p));
+  if (!via) return undefined;
+  return { from: quesited, via, to: querent };
 }
 
 function fmt(lon: number) {
@@ -43,15 +59,16 @@ export function makeReading(
 
   const positions = PLANETS.map((n) => ({ name: n, ...fmt(chart.planets[n].lon) }));
 
-  // significators: ruler of house 1 (querent) and of the asked house (quesited).
-  // For the demo we know Lilly's 1646 case: Sun (I) and Saturn (VII).
-  const querentP: PlanetName = "Sun";
-  const quesitedP: PlanetName = "Saturn";
+  // Significators: ruler of house 1 (querent) and of the asked house (quesited).
+  // Derived from the cusps, not assumed — for Lilly's 1646 case this yields the
+  // Sun and Saturn, as it must, but it holds for any moment and any house.
+  const querentP = rulerOfHouse(1, chart.cusps);
+  const quesitedP = rulerOfHouse(house, chart.cusps);
 
   const data: ChartData = {
     planets,
     cusps: chart.cusps.slice(1),
-    translation: { from: "Saturn", via: "Jupiter", to: "Sun" },
+    translation: translationOf(verdict, querentP, quesitedP),
   };
 
   return {

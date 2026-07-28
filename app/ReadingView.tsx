@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import type { Reading } from "./reading";
 import type { PlanetName } from "@/engine";
+import { TopicConfirm } from "./TopicConfirm";
 import styles from "./page.module.css";
 
 // astrochart touches the DOM/`self`; load it only in the browser.
@@ -19,6 +20,7 @@ const SIGN_GLYPH: Record<string, string> = {
   Aries: "♈", Taurus: "♉", Gemini: "♊", Cancer: "♋", Leo: "♌", Virgo: "♍",
   Libra: "♎", Scorpio: "♏", Sagittarius: "♐", Capricorn: "♑", Aquarius: "♒", Pisces: "♓",
 };
+const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
 
 const VERDICT_WORD: Record<Reading["verdict"]["verdict"], string> = {
   yes: "Yes.",
@@ -26,11 +28,80 @@ const VERDICT_WORD: Record<Reading["verdict"]["verdict"], string> = {
   qualified: "With conditions.",
 };
 
-export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQuestion: string }) {
-  const [question, setQuestion] = useState(demoQuestion);
-  const [cast, setCast] = useState(true); // demo starts revealed
+/** What the API returns once a house is confirmed. */
+interface CastReading extends Reading {
+  question: string;
+  house: number;
+  narration: string;
+  fallback: boolean;
+}
 
-  const v = reading.verdict;
+interface Confirm {
+  house: number;
+  topic: string;
+  confidence: number;
+  label: string;
+}
+
+type Stage =
+  | { kind: "idle" }
+  | { kind: "classifying" }
+  | { kind: "confirm"; confirm: Confirm }
+  | { kind: "casting" }
+  | { kind: "error"; message: string };
+
+export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQuestion: string }) {
+  const [question, setQuestion] = useState("");
+  const [stage, setStage] = useState<Stage>({ kind: "idle" });
+  const [cast, setCast] = useState<CastReading | null>(null);
+
+  const busy = stage.kind === "classifying" || stage.kind === "casting";
+
+  async function post(body: Record<string, unknown>) {
+    const res = await fetch("/api/reading", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error ?? "The reading could not be cast.");
+    return data;
+  }
+
+  async function ask(e: React.FormEvent) {
+    e.preventDefault();
+    if (!question.trim() || busy) return;
+    setStage({ kind: "classifying" });
+    setCast(null);
+    try {
+      const data = await post({ question: question.trim() });
+      setStage({ kind: "confirm", confirm: data });
+    } catch (err) {
+      setStage({ kind: "error", message: err instanceof Error ? err.message : "Something went wrong." });
+    }
+  }
+
+  // The querent has settled the topic — cast for this moment, here.
+  async function castFor(house: number) {
+    setStage({ kind: "casting" });
+    try {
+      const data = await post({
+        question: question.trim(),
+        house,
+        utc: new Date().toISOString(),
+      });
+      setCast(data);
+      setStage({ kind: "idle" });
+    } catch (err) {
+      setStage({ kind: "error", message: err instanceof Error ? err.message : "Something went wrong." });
+    }
+  }
+
+  // Until a real reading exists, the page shows Lilly's own 1646 judgment.
+  const shown: Reading = cast ?? reading;
+  const shownQuestion = cast ? cast.question : demoQuestion;
+  const shownHouse = cast ? cast.house : 7;
+  const v = shown.verdict;
 
   return (
     <>
@@ -44,100 +115,119 @@ export function ReadingView({ reading, demoQuestion }: { reading: Reading; demoQ
           rules set down by William Lilly in 1647. Phrase one thing you genuinely want to know.
         </p>
 
-        <form
-          className={styles.form}
-          onSubmit={(e) => {
-            e.preventDefault();
-            setCast(true);
-          }}
-        >
+        <form className={styles.form} onSubmit={ask}>
           <input
             className={styles.input}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Will I get the position I applied for?"
             aria-label="Your question"
+            maxLength={300}
+            disabled={busy}
           />
-          <button type="submit" className={styles.cast}>
-            Cast the chart
+          <button type="submit" className={styles.cast} disabled={busy || !question.trim()}>
+            {stage.kind === "classifying" ? "Reading it…" : "Cast the chart"}
           </button>
         </form>
-        <p className={styles.demoNote}>
-          Shown below: the reading Lilly himself judged in 1646 — a worked example, computed by the
-          same engine.
-        </p>
+
+        {stage.kind === "confirm" && (
+          <TopicConfirm
+            confirm={stage.confirm}
+            onConfirm={() => castFor(stage.confirm.house)}
+            onChoose={(house) => castFor(house)}
+            onCancel={() => setStage({ kind: "idle" })}
+          />
+        )}
+
+        {stage.kind === "casting" && (
+          <p className={styles.castingNote}>Casting the figure for this moment…</p>
+        )}
+
+        {stage.kind === "error" && (
+          <p className={styles.errorNote} role="alert">
+            {stage.message}
+          </p>
+        )}
+
+        {!cast && stage.kind === "idle" && (
+          <p className={styles.demoNote}>
+            Shown below: the reading Lilly himself judged in 1646 — a worked example, computed by the
+            same engine.
+          </p>
+        )}
       </section>
 
-      {cast && (
-        <section className={styles.layout}>
-          <figure className={styles.figure}>
-            <div className={styles.chartHead}>
-              <span className={styles.q}>{question}</span>
-              <span className={styles.meta}>
-                27 Jun 1646 · 07:33 LMT
-                <br />
-                London · Regiomontanus
-              </span>
-            </div>
-            <HoraryChart data={reading.chart} />
-            <div className={styles.legend}>
-              <span>
-                <i className={styles.swatch} style={{ borderColor: "var(--verdigris)" }} />
-                trine · sextile
-              </span>
-              <span>
-                <i className={styles.swatch} style={{ borderColor: "var(--vermilion)" }} />
-                square · opposition
-              </span>
-              <span>
-                <i className={styles.swatch} style={{ borderColor: "var(--gold)" }} />
-                translation of light
-              </span>
-            </div>
-          </figure>
+      <section className={styles.layout}>
+        <figure className={styles.figure}>
+          <div className={styles.chartHead}>
+            <span className={styles.q}>{shownQuestion}</span>
+            <span className={styles.meta}>
+              {cast ? "cast for this moment" : "27 Jun 1646 · 07:33 LMT"}
+              <br />
+              London · Regiomontanus
+            </span>
+          </div>
+          <HoraryChart data={shown.chart} />
+          <div className={styles.legend}>
+            <span>
+              <i className={styles.swatch} style={{ borderColor: "var(--verdigris)" }} />
+              trine · sextile
+            </span>
+            <span>
+              <i className={styles.swatch} style={{ borderColor: "var(--vermilion)" }} />
+              square · opposition
+            </span>
+            <span>
+              <i className={styles.swatch} style={{ borderColor: "var(--gold)" }} />
+              translation of light
+            </span>
+          </div>
+        </figure>
 
-          <aside className={styles.panel}>
-            <h2 className={styles.panelH}>Judgment</h2>
-            <div
-              className={styles.verdictWord}
-              style={{ color: v.verdict === "no" ? "var(--vermilion)" : "var(--verdigris)" }}
-            >
-              {VERDICT_WORD[v.verdict]}
-            </div>
+        <aside className={styles.panel}>
+          <h2 className={styles.panelH}>Judgment</h2>
+          <div
+            className={styles.verdictWord}
+            style={{ color: v.verdict === "no" ? "var(--vermilion)" : "var(--verdigris)" }}
+          >
+            {VERDICT_WORD[v.verdict]}
+          </div>
 
-            <div className={styles.sigRow}>
-              <div className={styles.sig}>
-                <div className={styles.role}>Querent · I</div>
-                <div className={styles.who}>
-                  {GLYPH[reading.querent.planet]} {reading.querent.planet}
-                </div>
-                <div className={styles.pos}>
-                  {reading.querent.deg}°{reading.querent.min.toString().padStart(2, "0")}′{" "}
-                  {SIGN_GLYPH[reading.querent.sign]} {reading.querent.sign}
-                </div>
+          <div className={styles.sigRow}>
+            <div className={styles.sig}>
+              <div className={styles.role}>Querent · I</div>
+              <div className={styles.who}>
+                {GLYPH[shown.querent.planet]} {shown.querent.planet}
               </div>
-              <div className={styles.sig}>
-                <div className={styles.role}>Quesited · VII</div>
-                <div className={styles.who}>
-                  {GLYPH[reading.quesited.planet]} {reading.quesited.planet}
-                </div>
-                <div className={styles.pos}>
-                  {reading.quesited.deg}°{reading.quesited.min.toString().padStart(2, "0")}′{" "}
-                  {SIGN_GLYPH[reading.quesited.sign]} {reading.quesited.sign}
-                </div>
+              <div className={styles.pos}>
+                {shown.querent.deg}°{shown.querent.min.toString().padStart(2, "0")}′{" "}
+                {SIGN_GLYPH[shown.querent.sign]} {shown.querent.sign}
               </div>
             </div>
+            <div className={styles.sig}>
+              <div className={styles.role}>Quesited · {ROMAN[shownHouse]}</div>
+              <div className={styles.who}>
+                {GLYPH[shown.quesited.planet]} {shown.quesited.planet}
+              </div>
+              <div className={styles.pos}>
+                {shown.quesited.deg}°{shown.quesited.min.toString().padStart(2, "0")}′{" "}
+                {SIGN_GLYPH[shown.quesited.sign]} {shown.quesited.sign}
+              </div>
+            </div>
+          </div>
 
-            <ul className={styles.reasons}>
-              {v.reasons.map((r, i) => (
-                <li key={i}>{r}</li>
-              ))}
-            </ul>
+          {cast && <div className={styles.narration}>{cast.narration}</div>}
 
-            {v.timing && <div className={styles.timing}>Perfects {v.timing}</div>}
-          </aside>
-        </section>
-      )}
+          {cast && <div className={styles.workingHead}>The testimonies</div>}
+          <ul className={styles.reasons}>
+            {v.reasons.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+
+          {v.timing && <div className={styles.timing}>Perfects {v.timing}</div>}
+        </aside>
+      </section>
     </>
   );
 }

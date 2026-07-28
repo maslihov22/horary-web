@@ -97,12 +97,111 @@
   transition: opacity .2s;
 }
 .cast:hover { opacity: .85; }
+.cast:disabled { opacity: .4; cursor: default; }
+.input:disabled { opacity: .6; }
 .demoNote {
   margin-top: 16px;
   font-size: 14px;
   color: var(--muted);
   font-style: italic;
 }
+
+/* ── confirming the topic before anything is cast ── */
+.confirm {
+  margin-top: 22px;
+  padding: 20px 22px;
+  border: 1px solid var(--hair);
+  border-left: 2px solid var(--gold);
+  background: color-mix(in srgb, var(--gold) 4%, transparent);
+  animation: riseIn .28s ease-out;
+}
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+.confirmQ {
+  font-family: var(--font-display), serif;
+  font-size: 23px;
+  line-height: 1.3;
+  margin: 0;
+}
+.confirmQ em { color: var(--gold); font-style: italic; }
+.confirmHint {
+  margin: 6px 0 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.confirmRow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.yes {
+  background: var(--fg);
+  color: var(--bg);
+  border: none;
+  border-radius: 2px;
+  padding: 11px 20px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity .2s;
+}
+.yes:hover { opacity: .85; }
+.notIt, .cancel {
+  background: none;
+  border: 1px solid var(--hair);
+  border-radius: 2px;
+  padding: 11px 18px;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: .06em;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+.notIt:hover, .cancel:hover { border-color: var(--gold); color: var(--fg); }
+.cancel { margin-top: 14px; padding: 8px 14px; }
+
+.topicGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+.topicChip {
+  background: none;
+  border: 1px solid var(--hair);
+  border-radius: 2px;
+  padding: 12px 14px;
+  text-align: left;
+  color: var(--fg);
+  font-family: var(--font-body), serif;
+  font-size: 15px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.topicChip:hover {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 7%, transparent);
+}
+
+.castingNote, .errorNote {
+  margin-top: 18px;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  letter-spacing: .05em;
+}
+.castingNote { color: var(--muted); }
+.castingNote::after {
+  content: "";
+  animation: ellipsis 1.4s steps(4, end) infinite;
+}
+@keyframes ellipsis {
+  0% { content: ""; } 25% { content: "·"; }
+  50% { content: "··"; } 75% { content: "···"; }
+}
+.errorNote { color: var(--vermilion); }
 
 /* ── layout: chart + judgment ── */
 .layout {
@@ -197,10 +296,39 @@
 .who { font-family: var(--font-display), serif; font-size: 22px; margin-top: 2px; }
 .pos { font-family: var(--font-mono), monospace; font-size: 12px; color: var(--muted); margin-top: 2px; }
 
+/* The judgment in prose — the thing the querent actually reads. The raw
+   testimonies stay below it as the working, shown but subordinate. */
+.narration {
+  font-family: var(--font-body), Georgia, serif;
+  font-size: 16.5px;
+  line-height: 1.62;
+  white-space: pre-wrap;
+  margin-top: 4px;
+}
+.narration::first-letter {
+  float: left;
+  font-family: var(--font-display), serif;
+  font-size: 3.1em;
+  line-height: .82;
+  padding: 4px 8px 0 0;
+  color: var(--gold);
+}
+
+.workingHead {
+  margin: 22px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--panel-line);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .reasons {
   list-style: none;
   padding: 0;
-  margin: 16px 0 0;
+  margin: 12px 0 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
