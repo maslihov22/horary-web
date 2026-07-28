@@ -23,14 +23,40 @@ const ALL_PLANETS: PlanetName[] =
 // The verdict is a qualitative reading of those facts, not a sum of points.
 export function judge(chart: Chart, quesitedHouse: number): Verdict {
   const reasons: string[] = []
-  const querent: PlanetName = rulerOfHouse(1, chart.cusps)
+  const houseRuler: PlanetName = rulerOfHouse(1, chart.cusps)
   const quesited: PlanetName = rulerOfHouse(quesitedHouse, chart.cusps)
+
+  // One planet can rule both houses — Sagittarius rising with Pisces on the
+  // 10th gives Jupiter twice, which is common on career questions. Judging a
+  // planet against itself yields nonsense (a 0° "separating conjunction" of
+  // Jupiter with Jupiter, light translated from Jupiter to Jupiter), so the
+  // significators must be separated before anything is measured.
+  //
+  // Lilly states no rule for this case. He does already carry the Moon as
+  // co-significator of the querent, so she takes the querent's part and the
+  // shared planet is left to the matter alone. (Bonatti instead weighs the
+  // dispositors of the shared planet; that is a different school and is
+  // deliberately not mixed in here.)
+  let querent = houseRuler
+  if (houseRuler === quesited) {
+    reasons.push(`Same ruler (${houseRuler}) governs both the querent and the matter — they are closely bound together.`)
+    if (houseRuler === 'Moon') {
+      // Nothing is left to stand apart from the matter; Lilly's own co-
+      // significator is already spoken for.
+      reasons.push(`The Moon rules both, and so does not separate from the matter — the chart yields no distinct significators to judge by.`)
+      return {
+        verdict: 'qualified',
+        confidence: 0.3,
+        reasons,
+        timing: null,
+      }
+    }
+    querent = 'Moon'
+    reasons.push(`The Moon, co-significator of the querent, is taken for the querent, and ${quesited} for the matter alone.`)
+  }
+
   const qP = chart.planets[querent]
   const tP = chart.planets[quesited]
-
-  if (querent === quesited) {
-    reasons.push(`Same ruler (${querent}) governs both — the matter rests on the querent alone.`)
-  }
 
   // ── 1. PERFECTION ─────────────────────────────────────────────────────────
   let perfection: 'direct' | 'translation' | 'collection' | null = null
@@ -85,22 +111,29 @@ export function judge(chart: Chart, quesitedHouse: number): Verdict {
   }
 
   // ── 3. THE MOON as witness ──────────────────────────────────────────────────
+  // Unless she is herself the querent's significator: her motion has then
+  // already been read as the perfection above, and counting it again would
+  // charge the same fact twice.
+  const moonIsQuerent = querent === 'Moon'
   const moon = moonMotion(chart)
   const voidMoon = isMoonVoid(chart)
-  if (voidMoon) {
-    reasons.push('The Moon is void of course — she performs nothing of herself.')
-  } else {
-    if (moon.separatingFrom) {
-      reasons.push(`The Moon separates from a ${moon.separatingFrom.aspect} of ${moon.separatingFrom.planet} (the recent past of the matter).`)
-    }
-    if (moon.applyingTo) {
-      const toNat = nature(moon.applyingTo.planet)
-      reasons.push(`The Moon next applies to a ${moon.applyingTo.aspect} of ${moon.applyingTo.planet}${toNat !== 'neutral' ? ` (a ${toNat})` : ''} — the near future of the matter.`)
+  if (!moonIsQuerent) {
+    if (voidMoon) {
+      reasons.push('The Moon is void of course — she performs nothing of herself.')
+    } else {
+      if (moon.separatingFrom) {
+        reasons.push(`The Moon separates from a ${moon.separatingFrom.aspect} of ${moon.separatingFrom.planet} (the recent past of the matter).`)
+      }
+      if (moon.applyingTo) {
+        const toNat = nature(moon.applyingTo.planet)
+        reasons.push(`The Moon next applies to a ${moon.applyingTo.aspect} of ${moon.applyingTo.planet}${toNat !== 'neutral' ? ` (a ${toNat})` : ''} — the near future of the matter.`)
+      }
     }
   }
   // Lilly weighs the Moon separating from an easy aspect to a hard one, or to a
   // malefic, as testimony against the matter.
   const moonToMalefic =
+    !moonIsQuerent &&
     moon.applyingTo != null &&
     nature(moon.applyingTo.planet) === 'malefic' &&
     (moon.applyingTo.aspect === 'square' || moon.applyingTo.aspect === 'opposition')
@@ -141,7 +174,10 @@ export function judge(chart: Chart, quesitedHouse: number): Verdict {
     // A fortune strong by dignity carrying the matter takes off ordinary
     // impediments (Lilly: it "performs wholly"). But it cannot save an
     // afflicted, unreceived malefic.
-    const impediment = voidMoon || moonToMalefic || qDign < 0 || tDign < 0
+    // When the Moon stands for the querent her void-of-course is not a separate
+    // impediment: it is precisely the absence of perfection, already judged.
+    const impediment =
+      (voidMoon && !moonIsQuerent) || moonToMalefic || qDign < 0 || tDign < 0
 
     if (afflictedUnreceivedMalefic) {
       verdict = 'qualified'
