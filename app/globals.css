@@ -1,0 +1,85 @@
+:root {
+  /* ink-on-parchment — light default */
+  --bg:#E8DCC4;
+  --fg:#14110C;
+  --muted:#6a5c3e;
+  --card:#efe6d3;
+  --stroke:#2a2318;
+  --hair:rgba(20,17,12,.16);
+  --panel-line:rgba(20,17,12,.10);
+  --gold:#B08207;
+  --vermilion:#A63A2E;
+  --verdigris:#2f5348;
+}
+:root[data-theme="dark"] {
+  --bg:#14110C;
+  --fg:#E8DCC4;
+  --muted:#9C8A63;
+  --card:#1c1812;
+  --stroke:#c9bd9f;
+  --hair:rgba(232,220,196,.16);
+  --panel-line:rgba(232,220,196,.10);
+  --gold:#C9A227;
+  --vermilion:#C65548;
+  --verdigris:#6FA394;
+}
+:root[data-theme="light"] {
+  --bg:#E8DCC4;
+  --fg:#14110C;
+  --muted:#6a5c3e;
+  --card:#efe6d3;
+  --stroke:#2a2318;
+  --hair:rgba(20,17,12,.16);
+  --panel-line:rgba(20,17,12,.10);
+  --gold:#B08207;
+  --vermilion:#A63A2E;
+  --verdigris:#2f5348;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg:#14110C;
+    --fg:#E8DCC4;
+    --muted:#9C8A63;
+    --card:#1c1812;
+    --stroke:#c9bd9f;
+    --hair:rgba(232,220,196,.16);
+    --panel-line:rgba(232,220,196,.10);
+    --gold:#C9A227;
+    --vermilion:#C65548;
+    --verdigris:#6FA394;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body), Georgia, serif;
+  line-height: 1.6;
+  transition: background .4s, color .4s;
+  position: relative;
+  min-height: 100dvh;
+}
+
+/* engraving grain overlay */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  opacity: .05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+a { color: inherit; }
+
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+@keyframes hDraw { to { stroke-dashoffset: 0; } }
+@keyframes hFade { to { opacity: 1; } }
