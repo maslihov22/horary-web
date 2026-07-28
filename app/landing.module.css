@@ -1,0 +1,339 @@
+/* Landing page. Same ink-on-parchment palette as the tool; the difference is
+   pace — this page is read, so it is set wider, quieter, and with more air. */
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 38px 26px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--hair);
+  padding-bottom: 16px;
+}
+.brand {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.brand b { color: var(--fg); font-weight: 600; }
+
+.kicker {
+  font-family: var(--font-mono), monospace;
+  font-size: 11.5px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 18px;
+}
+
+/* ── 1. hero ── */
+.hero {
+  padding: clamp(60px, 12vh, 130px) 0 clamp(50px, 9vh, 100px);
+  max-width: 40ch;
+}
+.h1 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(46px, 8.5vw, 92px);
+  line-height: .98;
+  letter-spacing: -.02em;
+  margin: 0 0 .34em;
+  text-wrap: balance;
+}
+.h1 em { font-style: italic; color: var(--muted); }
+.lede {
+  font-size: clamp(17px, 2vw, 20px);
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 54ch;
+  margin: 0 0 34px;
+}
+
+.cta {
+  display: inline-block;
+  background: var(--fg);
+  color: var(--bg);
+  text-decoration: none;
+  border-radius: 2px;
+  padding: 16px 30px;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  transition: opacity .2s, transform .2s;
+}
+.cta:hover { opacity: .87; transform: translateY(-1px); }
+.cta:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.ctaNote {
+  margin: 14px 0 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11.5px;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+
+/* ── shared section furniture ── */
+.h2 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.12;
+  letter-spacing: -.01em;
+  margin: 0 0 .5em;
+  text-wrap: balance;
+  max-width: 22ch;
+}
+.body {
+  font-size: 17px;
+  line-height: 1.68;
+  max-width: 62ch;
+  margin: 0 0 1.1em;
+  color: var(--muted);
+}
+.body:last-child { margin-bottom: 0; }
+
+/* A band sits on a faintly tinted ground, to break the scroll into chapters. */
+.band {
+  margin: 0 -26px;
+  padding: clamp(56px, 9vh, 96px) 26px;
+  border-top: 1px solid var(--hair);
+  background: color-mix(in srgb, var(--gold) 3.5%, transparent);
+}
+.bandInner { max-width: 1128px; margin: 0 auto; }
+
+/* ── 3. how it works ── */
+.steps {
+  padding: clamp(56px, 9vh, 96px) 0;
+  border-top: 1px solid var(--hair);
+}
+.stepList {
+  list-style: none;
+  padding: 0;
+  margin: 40px 0 0;
+  display: grid;
+  gap: 36px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+.stepNo {
+  display: block;
+  font-family: var(--font-display), serif;
+  font-size: 15px;
+  letter-spacing: .2em;
+  color: var(--gold);
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--hair);
+}
+.stepH {
+  font-family: var(--font-display), serif;
+  font-weight: 500;
+  font-size: 23px;
+  margin: 0 0 .4em;
+}
+.stepP {
+  font-size: 15.5px;
+  line-height: 1.62;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── 4. the edge ── */
+.facts {
+  list-style: none;
+  padding: 0;
+  margin: 40px 0 0;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  max-width: 780px;
+}
+.facts li {
+  border-top: 1px solid var(--hair);
+  padding-top: 16px;
+}
+.facts b {
+  display: block;
+  font-family: var(--font-display), serif;
+  font-weight: 500;
+  font-size: 46px;
+  line-height: 1;
+  color: var(--gold);
+}
+.facts span {
+  display: block;
+  margin-top: 8px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ── 5. proof ── */
+.proof {
+  padding: clamp(56px, 9vh, 96px) 0;
+  border-top: 1px solid var(--hair);
+}
+.proofGrid {
+  display: grid;
+  gap: 26px;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  margin: 40px 0 0;
+}
+.proofCol {
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 3px;
+  padding: 26px 24px;
+}
+.proofWho {
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+.proofVerdict {
+  font-family: var(--font-display), serif;
+  font-style: italic;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--verdigris);
+  margin: 0 0 16px;
+}
+.proofSaid {
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+.proofCite {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin: 0;
+}
+.proofReasons {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.proofReasons li {
+  position: relative;
+  padding-left: 17px;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.proofReasons li::before {
+  content: "·";
+  position: absolute;
+  left: 3px;
+  color: var(--gold);
+  font-size: 19px;
+  line-height: 1;
+}
+.proofTiming {
+  margin: 16px 0 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.proofSeal, .proofSealBroken {
+  margin: 26px 0 0;
+  font-family: var(--font-display), serif;
+  font-style: italic;
+  font-size: 20px;
+  color: var(--fg);
+}
+.proofSealBroken { color: var(--vermilion); }
+
+/* ── 6. limits ── */
+.limits {
+  padding: clamp(56px, 9vh, 96px) 0;
+  border-top: 1px solid var(--hair);
+}
+.limitCols {
+  display: grid;
+  gap: 34px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-top: 30px;
+  max-width: 900px;
+}
+.limitHead {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+.good, .bad {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.good li, .bad li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.good li::before, .bad li::before {
+  position: absolute;
+  left: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 14px;
+}
+.good li::before { content: "✓"; color: var(--verdigris); }
+.bad li::before  { content: "✕"; color: var(--vermilion); }
+.limitNote {
+  margin: 30px 0 0;
+  font-size: 15.5px;
+  line-height: 1.62;
+  color: var(--muted);
+  max-width: 62ch;
+  font-style: italic;
+}
+
+/* ── closer ── */
+.closer {
+  padding: clamp(70px, 12vh, 120px) 0;
+  border-top: 1px solid var(--hair);
+  text-align: center;
+}
+.closerH {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  font-style: italic;
+  font-size: clamp(30px, 5vw, 52px);
+  line-height: 1.1;
+  margin: 0 0 30px;
+  text-wrap: balance;
+}
+
+.footer {
+  border-top: 1px solid var(--hair);
+  padding: 22px 0 40px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--muted);
+  text-align: center;
+}
