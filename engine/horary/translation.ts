@@ -1,5 +1,6 @@
 import type { PlanetPos } from '../types'
 import { normalizeDeg, separation } from '../astro/angles'
+import { receives } from './receptions'
 
 // Ptolemaic aspect angles used for translation links.
 const ANGLES = [0, 60, 90, 120, 180]
@@ -47,6 +48,46 @@ function linkWorks(tr: PlanetPos, other: PlanetPos): boolean {
 // significator to the other. It must aspect BOTH significators (each link
 // working per linkWorks) and move faster than both — it collects from one and
 // applies to the other.
+export interface Collection {
+  collector: PlanetPos['name']
+  detail: string
+}
+
+// Collection of light, in Lilly's words: "when as the two principall
+// Significators doe not behold one another, but both cast their severall
+// aspects to a more weighty Planet than themselves, and they both receive him
+// in some of their essentiall dignities; then shall that Planet who thus
+// collects both their lights, bring the thing demanded to perfection."
+//
+// Three conditions, all required — the reception clause is the one most often
+// dropped, and without it the rule would fire on almost any slow planet caught
+// between the significators.
+export function findCollection(
+  sig1: PlanetPos,
+  sig2: PlanetPos,
+  others: PlanetPos[],
+): Collection | null {
+  for (const col of others) {
+    if (col.name === sig1.name || col.name === sig2.name) continue
+
+    // "both cast their severall aspects to" — each significator applies to it.
+    if (!linkWorks(sig1, col) || !linkWorks(sig2, col)) continue
+
+    // "a more weighty Planet than themselves" — heavier means slower moving.
+    if (Math.abs(col.speed) >= Math.abs(sig1.speed)) continue
+    if (Math.abs(col.speed) >= Math.abs(sig2.speed)) continue
+
+    // "they both receive him in some of their essentiall dignities".
+    if (!receives(sig1, col) || !receives(sig2, col)) continue
+
+    return {
+      collector: col.name,
+      detail: `${col.name}, weightier than both and received by each, collects their light — a third party concludes what the principals cannot.`,
+    }
+  }
+  return null
+}
+
 export function findTranslation(
   sig1: PlanetPos,
   sig2: PlanetPos,

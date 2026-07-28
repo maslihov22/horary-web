@@ -1,12 +1,22 @@
 import type { PlanetPos } from '../types'
-import { signOf, rulerOfSign } from './rulerships'
+import { signOf, hasDignityIn } from './rulerships'
 
-// Domicile reception only (first version). Mutual when each planet occupies a
-// sign ruled by the other; one-way when only one does.
+// Reception: a planet standing in another's dignity is that other's guest.
+//
+// Lilly does not limit this to domicile — collection of light requires that the
+// significators "both receive him in some of their essential dignities" — so
+// domicile, exaltation and triplicity all count. Domicile remains the strongest
+// and is what the older domicile-only reading captured.
+
+/** Does `host` receive `guest` — is the guest sitting in the host's dignity? */
+export function receives(host: PlanetPos, guest: PlanetPos): boolean {
+  return hasDignityIn(host.name, signOf(guest.lon))
+}
+
 export function reception(a: PlanetPos, b: PlanetPos): 'mutual'|'oneway'|'none' {
-  const aInB = rulerOfSign(signOf(a.lon)) === b.name // a sits in b's sign
-  const bInA = rulerOfSign(signOf(b.lon)) === a.name // b sits in a's sign
-  if (aInB && bInA) return 'mutual'
-  if (aInB || bInA) return 'oneway'
+  const aReceivedByB = receives(b, a) // a sits in a sign b has dignity in
+  const bReceivedByA = receives(a, b)
+  if (aReceivedByB && bReceivedByA) return 'mutual'
+  if (aReceivedByB || bReceivedByA) return 'oneway'
   return 'none'
 }

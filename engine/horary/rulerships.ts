@@ -43,6 +43,15 @@ const ELEMENT: Record<SignName, 'fire'|'earth'|'air'|'water'> = {
   Cancer:'water',Scorpio:'water',Pisces:'water',
 }
 
+// Does `planet` hold any essential dignity over the given sign? Lilly receives
+// a planet in ANY of his dignities, not domicile alone — domicile, exaltation
+// and triplicity all count as a host receiving a guest.
+export function hasDignityIn(planet: PlanetName, sign: SignName): boolean {
+  return DOMICILE[sign] === planet
+    || EXALT[sign] === planet
+    || TRIPLICITY[ELEMENT[sign]] === planet
+}
+
 export function essentialDignity(planet: PlanetName, lon: number): number {
   const sign = signOf(lon)
   if (DOMICILE[sign] === planet) return 5
