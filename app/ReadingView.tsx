@@ -50,6 +50,7 @@ interface Confirm {
 }
 
 interface CastReading extends Reading {
+  id: string;
   question: string;
   house: number;
   narration: string;
@@ -313,6 +314,13 @@ export function ReadingView() {
                 </ul>
 
                 {v.timing && <div className={styles.timing}>Perfects {v.timing}</div>}
+
+                {/* The reading now has an address. It opens only in this
+                    browser, so this is a way back to it, not a way to share. */}
+                <p className={styles.keepLine}>
+                  Saved — <a className={styles.keepLink} href={`/r/${cast.id}`}>return to this reading</a>
+                  <span className={styles.keepNote}>opens in this browser only</span>
+                </p>
               </>
             )}
           </aside>

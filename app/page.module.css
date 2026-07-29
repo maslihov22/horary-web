@@ -454,6 +454,26 @@ a.brand:hover { color: var(--fg); }
   color: var(--gold);
 }
 
+.keepLine {
+  margin: 22px 0 0;
+  padding-top: 15px;
+  border-top: 1px solid var(--panel-line);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.keepLink {
+  color: var(--gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.keepNote {
+  display: block;
+  margin-top: 5px;
+  opacity: .75;
+}
+
 .workingHead {
   margin: 22px 0 0;
   padding-top: 16px;

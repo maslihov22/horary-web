@@ -1,0 +1,77 @@
+// Horary — persistence.
+//
+// Serverless connection setup, per Supabase's Prisma guide: the runtime goes
+// through Supavisor in transaction mode (port 6543, pgbouncer=true), while
+// migrations need a session-mode connection (port 5432). Vercel's Supabase
+// integration provides both, already shaped correctly.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+/// A cast and judged horary. Stored so that a reading survives a reload, and
+/// so that payment can be attached to one later.
+///
+/// There is no user table yet, deliberately. Access is by possession: the id is
+/// an unguessable secret, and the browser that cast the reading also holds it in
+/// an httpOnly cookie. A leaked link on its own opens nothing — the cookie is
+/// what proves ownership. An email is recorded only if someone pays, because
+/// that is the first moment a durable identity is actually needed.
+model Reading {
+  /// 24 chars from crypto.randomBytes — the secret that both addresses and
+  /// unlocks the reading. At 62^24 the space is far past brute force.
+  id String @id
+
+  /// The querent's own words, and the house it was routed to.
+  question String @db.Text
+  house    Int
+
+  /// The moment and place the figure was cast for. Both are part of the chart,
+  /// not metadata: a different second or city yields a different judgment.
+  askedAt    DateTime
+  lat        Float
+  lon        Float
+  placeLabel String
+
+  /// The engine's judgment, stored whole. `reasons` is the ordered list of
+  /// testimonies; `chart` is what the drawing needs. Kept as JSON because they
+  /// are read back as a unit and never queried across.
+  verdict    String /// yes | no | qualified
+  confidence Float
+  reasons    Json
+  timing     String?
+  chart      Json
+
+  /// Significators, denormalised for display.
+  querentPlanet  String
+  querentSign    String
+  querentDeg     Int
+  querentMin     Int
+  quesitedPlanet String
+  quesitedSign   String
+  quesitedDeg    Int
+  quesitedMin    Int
+
+  /// The written judgment. Withheld from the free view; `narration` is only
+  /// served once paid.
+  narration String  @db.Text
+  fallback  Boolean @default(false)
+
+  /// Payment. `email` arrives from Stripe's checkout session, not from a form.
+  paid            Boolean   @default(false)
+  paidAt          DateTime?
+  email           String?
+  stripeSessionId String?   @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
+  @@map("readings")
+}

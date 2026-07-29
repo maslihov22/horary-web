@@ -5,6 +5,7 @@ import { HOUSE_TOPICS } from "@/app/llm/prompts";
 import { makeReading } from "@/app/reading";
 import { LlmError } from "@/app/llm/client";
 import { placeFromHeaders, type Place } from "@/app/geo";
+import { saveReading } from "@/app/readings-store";
 
 /** A location the querent supplied themselves, if it is usable. */
 function chosenPlace(lat: unknown, lon: unknown, label: unknown): Place | null {
@@ -82,8 +83,22 @@ export async function POST(req: Request) {
       quesited: reading.quesited,
     });
 
+    // Persist before answering, so the reading survives a reload and has an
+    // address of its own. The cookie set here is what will later prove this
+    // browser cast it.
+    const id = await saveReading({
+      question: question.trim(),
+      house: h,
+      moment,
+      place,
+      reading,
+      narration: narration.text,
+      fallback: narration.fallback,
+    });
+
     return NextResponse.json({
       stage: "reading",
+      id,
       question: question.trim(),
       house: h,
       place,
