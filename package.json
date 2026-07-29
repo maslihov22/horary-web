@@ -7,6 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "tg": "node --env-file=.env scripts/telegram-webhook.mjs",
     "sync:engine": "node scripts/sync-engine.mjs",
     "check:engine": "node scripts/sync-engine.mjs --check"
   },

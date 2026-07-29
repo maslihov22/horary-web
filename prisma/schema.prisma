@@ -69,9 +69,18 @@ model Reading {
   email           String?
   stripeSessionId String?   @unique
 
+  /// Claimed through the bot. The chat id comes from Telegram itself when the
+  /// querent presses Start on a deep link carrying this reading's id — never
+  /// from anything they typed. A username would be worthless here: it is
+  /// self-declared, it changes, not everyone has one, and the Bot API cannot
+  /// message a private chat by username at all.
+  telegramChatId BigInt?
+  claimedAt      DateTime?
+
   createdAt DateTime @default(now())
 
   @@index([email])
+  @@index([telegramChatId])
   @@index([createdAt])
   @@map("readings")
 }

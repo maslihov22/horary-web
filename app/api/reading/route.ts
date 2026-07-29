@@ -6,6 +6,7 @@ import { makeReading } from "@/app/reading";
 import { LlmError } from "@/app/llm/client";
 import { placeFromHeaders, type Place } from "@/app/geo";
 import { saveReading } from "@/app/readings-store";
+import { claimLink } from "@/app/telegram";
 
 /** A location the querent supplied themselves, if it is usable. */
 function chosenPlace(lat: unknown, lon: unknown, label: unknown): Place | null {
@@ -99,6 +100,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       stage: "reading",
       id,
+      // Absent until a bot is configured; the UI then simply omits the offer.
+      claimUrl: claimLink(id),
       question: question.trim(),
       house: h,
       place,

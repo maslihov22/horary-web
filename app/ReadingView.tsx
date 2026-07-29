@@ -51,6 +51,7 @@ interface Confirm {
 
 interface CastReading extends Reading {
   id: string;
+  claimUrl: string | null;
   question: string;
   house: number;
   narration: string;
@@ -315,12 +316,37 @@ export function ReadingView() {
 
                 {v.timing && <div className={styles.timing}>Perfects {v.timing}</div>}
 
-                {/* The reading now has an address. It opens only in this
-                    browser, so this is a way back to it, not a way to share. */}
-                <p className={styles.keepLine}>
-                  Saved — <a className={styles.keepLink} href={`/r/${cast.id}`}>return to this reading</a>
-                  <span className={styles.keepNote}>opens in this browser only</span>
-                </p>
+                {/* The reading opens only in this browser. Telegram is how it
+                    travels: pressing Start hands the bot this reading's id
+                    along with a chat id Telegram vouches for, so nothing needs
+                    to be typed and nothing can be claimed by guessing. */}
+                {cast.claimUrl ? (
+                  <div className={styles.keepBlock}>
+                    <a
+                      className={styles.keepBtn}
+                      href={cast.claimUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Keep in Telegram
+                    </a>
+                    <p className={styles.keepNote}>
+                      One tap — nothing to type. Otherwise this reading opens only in this
+                      browser.{" "}
+                      <a className={styles.keepLink} href={`/r/${cast.id}`}>
+                        Its address
+                      </a>
+                    </p>
+                  </div>
+                ) : (
+                  <p className={styles.keepLine}>
+                    Saved —{" "}
+                    <a className={styles.keepLink} href={`/r/${cast.id}`}>
+                      return to this reading
+                    </a>
+                    <span className={styles.keepNote}>opens in this browser only</span>
+                  </p>
+                )}
               </>
             )}
           </aside>
