@@ -84,6 +84,18 @@ export async function saveReading(input: SaveInput): Promise<string> {
     },
   });
 
+  await grantCookie(id);
+  return id;
+}
+
+/** Does this browser hold the cookie that proves it cast this reading? */
+export async function ownsReading(id: string): Promise<boolean> {
+  const jar = await cookies();
+  return jar.get(cookieName(id))?.value === id;
+}
+
+/** Grants this browser the ownership cookie. */
+async function grantCookie(id: string): Promise<void> {
   const jar = await cookies();
   jar.set(cookieName(id), id, {
     httpOnly: true,
@@ -92,14 +104,43 @@ export async function saveReading(input: SaveInput): Promise<string> {
     path: "/",
     maxAge: COOKIE_MAX_AGE,
   });
-
-  return id;
 }
 
-/** Does this browser hold the cookie that proves it cast this reading? */
-export async function ownsReading(id: string): Promise<boolean> {
-  const jar = await cookies();
-  return jar.get(cookieName(id))?.value === id;
+const ACCESS_TTL_MS = 1000 * 60 * 60 * 24 * 7; // a week
+
+/** Issues a fresh single-use token for a reading the bot is keeping. */
+export async function issueAccessToken(id: string): Promise<string> {
+  const token = randomBytes(ID_BYTES).toString("base64url");
+  await db.reading.update({
+    where: { id },
+    data: { accessToken: token, accessExpires: new Date(Date.now() + ACCESS_TTL_MS) },
+  });
+  return token;
+}
+
+/**
+ * Redeems a token from a bot link, granting this browser the cookie.
+ *
+ * Single use: the token is cleared as it is spent, so a forwarded message
+ * cannot be replayed by whoever else reads it. The bot will mint another on
+ * request, which is the recovery path.
+ */
+export async function redeemAccessToken(id: string, token: string): Promise<boolean> {
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return false;
+
+  const row = await db.reading.findUnique({
+    where: { id },
+    select: { accessToken: true, accessExpires: true },
+  });
+  if (!row?.accessToken || row.accessToken !== token) return false;
+  if (!row.accessExpires || row.accessExpires.getTime() < Date.now()) return false;
+
+  await db.reading.update({
+    where: { id },
+    data: { accessToken: null, accessExpires: null },
+  });
+  await grantCookie(id);
+  return true;
 }
 
 export type ReadingAccess =

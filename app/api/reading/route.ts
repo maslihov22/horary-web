@@ -87,21 +87,32 @@ export async function POST(req: Request) {
     // Persist before answering, so the reading survives a reload and has an
     // address of its own. The cookie set here is what will later prove this
     // browser cast it.
-    const id = await saveReading({
-      question: question.trim(),
-      house: h,
-      moment,
-      place,
-      reading,
-      narration: narration.text,
-      fallback: narration.fallback,
-    });
+    //
+    // A storage failure must not swallow the judgment: the chart is already
+    // cast and the narration already paid for. The querent gets their reading
+    // and loses only its address — a worse outcome than saving, a far better
+    // one than an error page.
+    let id: string | null = null;
+    try {
+      id = await saveReading({
+        question: question.trim(),
+        house: h,
+        moment,
+        place,
+        reading,
+        narration: narration.text,
+        fallback: narration.fallback,
+      });
+    } catch (err) {
+      console.error("[reading] not persisted", err);
+    }
 
     return NextResponse.json({
       stage: "reading",
       id,
-      // Absent until a bot is configured; the UI then simply omits the offer.
-      claimUrl: claimLink(id),
+      // Absent until a bot is configured, or when the reading was never stored
+      // and so has nothing for the bot to keep.
+      claimUrl: id ? claimLink(id) : null,
       question: question.trim(),
       house: h,
       place,
@@ -115,8 +126,29 @@ export async function POST(req: Request) {
       fallback: narration.fallback,
     });
   } catch (err) {
-    const msg = err instanceof LlmError ? err.message : "The reading could not be cast.";
     console.error("[reading]", err);
-    return NextResponse.json({ error: msg }, { status: 502 });
+
+    // Distinguish what the querent can act on. "Try again" is useless advice
+    // when the astrologer is down and the only honest answer when it is busy.
+    if (err instanceof LlmError) {
+      return NextResponse.json({ error: err.message }, { status: 502 });
+    }
+    if (isDbError(err)) {
+      return NextResponse.json(
+        { error: "The ephemeris is unreachable for a moment. Ask again shortly." },
+        { status: 503 },
+      );
+    }
+    return NextResponse.json({ error: "The reading could not be cast." }, { status: 500 });
   }
+}
+
+/** Prisma and the pooler both surface connection trouble this way. */
+function isDbError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const name = err.name;
+  return (
+    name.startsWith("PrismaClient") ||
+    /can't reach database|connection|ENOTFOUND|ECONNREFUSED|pooler/i.test(err.message)
+  );
 }

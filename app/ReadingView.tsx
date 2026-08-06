@@ -50,7 +50,8 @@ interface Confirm {
 }
 
 interface CastReading extends Reading {
-  id: string;
+  /** Null when the judgment stood but storing it did not. */
+  id: string | null;
   claimUrl: string | null;
   question: string;
   house: number;
@@ -338,13 +339,22 @@ export function ReadingView() {
                       </a>
                     </p>
                   </div>
-                ) : (
+                ) : cast.id ? (
                   <p className={styles.keepLine}>
                     Saved —{" "}
                     <a className={styles.keepLink} href={`/r/${cast.id}`}>
                       return to this reading
                     </a>
                     <span className={styles.keepNote}>opens in this browser only</span>
+                  </p>
+                ) : (
+                  // Judged but not stored. Saying so is what tells the querent
+                  // to copy it now rather than trust a link that was never made.
+                  <p className={styles.keepLine}>
+                    Not saved
+                    <span className={styles.keepNote}>
+                      this judgment could not be stored — copy it before leaving
+                    </span>
                   </p>
                 )}
               </>

@@ -52,14 +52,21 @@ function fallbackText(input: NarrateInput): string {
  * Turns the engine's judgment into prose.
  *
  * The model never decides anything: the verdict, the testimonies and the timing
- * all arrive fixed, and it writes around them. If it strays, we retry once at a
+ * all arrive fixed, and it writes around them. If it strays, we retry at a
  * colder temperature, then serve the engine's raw testimonies instead — a dry
  * reading beats an eloquent wrong one.
+ *
+ * Three attempts rather than two because the first failure is often the wire,
+ * not the model: OpenRouter answers this prompt in ~5s but intermittently
+ * stalls, and losing a reading to that costs a chart already computed and
+ * tokens already paid for.
  */
 export async function narrate(input: NarrateInput): Promise<Narration> {
   const user = narratorInput(input);
+  const attempts = [0.7, 0.7, 0.2];
 
-  for (const temperature of [0.7, 0.2]) {
+  for (const [i, temperature] of attempts.entries()) {
+    const last = i === attempts.length - 1;
     let text: string;
     try {
       text = await chat({
@@ -69,9 +76,12 @@ export async function narrate(input: NarrateInput): Promise<Narration> {
         // 180 words needs ~250 tokens, but v4-flash may spend ~200 more
         // reasoning first; too tight a budget truncates the judgment mid-word.
         maxTokens: 900,
+        // Generating the judgment takes ~5s when healthy, but the tail is long;
+        // 30s cut off roughly a quarter of readings for no reason but impatience.
+        timeoutMs: 90_000,
       });
     } catch (err) {
-      if (err instanceof LlmError && temperature === 0.2) break;
+      if (err instanceof LlmError && last) break;
       if (err instanceof LlmError) continue;
       throw err;
     }

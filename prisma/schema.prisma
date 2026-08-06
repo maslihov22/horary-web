@@ -77,6 +77,16 @@ model Reading {
   telegramChatId BigInt?
   claimedAt      DateTime?
 
+  /// Grants the cookie to a browser arriving from the bot.
+  ///
+  /// A link sent to Telegram is proof of nothing on its own: the browser that
+  /// opens it carries no evidence of who its owner is. So the bot appends a
+  /// single-use token, and visiting with it mints the ownership cookie for that
+  /// browser. Consumed on first use and reissued by the bot on demand, so a
+  /// forwarded message cannot be replayed by whoever else reads it.
+  accessToken   String?   @unique
+  accessExpires DateTime?
+
   createdAt DateTime @default(now())
 
   @@index([email])

@@ -13,12 +13,16 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+// Links from the bot arrive at /r/<id>/open?k=<token>, which spends the token
+// for the ownership cookie before sending the browser here. Rendering only
+// reads — a Server Component cannot set cookies.
 export default async function ReadingPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
   const access = await getReading(id);
 
   if (access.status === "not-found") notFound();
@@ -42,8 +46,9 @@ export default async function ReadingPage({
             so the link alone is deliberately not enough to read it.
           </p>
           <p className={guard.body}>
-            If it is yours, open it on the device where you asked. Recovering a reading by
-            email is coming; for now the browser that cast it is the only key.
+            If it is yours and you kept it in Telegram, send <b>/readings</b> to the bot — it
+            will hand you a link that opens here. Otherwise open it on the device where you
+            asked.
           </p>
           <Link href="/ask" className={guard.cta}>
             Ask your own question

@@ -17,31 +17,45 @@ export async function chat(opts: {
   maxTokens: number;
   json?: boolean;
   signal?: AbortSignal;
+  /** How long to wait before giving up. Long answers need far more than short ones. */
+  timeoutMs?: number;
 }): Promise<string> {
   const key = process.env.AI_KEY_OPENROUTER;
   if (!key) throw new LlmError("AI_KEY_OPENROUTER is not set");
 
-  const res = await fetch(ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      // OpenRouter attributes traffic with these; harmless if unset.
-      "HTTP-Referer": "https://horary.app",
-      "X-Title": "Horary",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      temperature: opts.temperature,
-      max_tokens: opts.maxTokens,
-      messages: [
-        { role: "system", content: opts.system },
-        { role: "user", content: opts.user },
-      ],
-      ...(opts.json ? { response_format: { type: "json_object" } } : {}),
-    }),
-    signal: opts.signal ?? AbortSignal.timeout(30_000),
-  });
+  const timeoutMs = opts.timeoutMs ?? 30_000;
+
+  let res: Response;
+  try {
+    res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        // OpenRouter attributes traffic with these; harmless if unset.
+        "HTTP-Referer": "https://horary.app",
+        "X-Title": "Horary",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        temperature: opts.temperature,
+        max_tokens: opts.maxTokens,
+        messages: [
+          { role: "system", content: opts.system },
+          { role: "user", content: opts.user },
+        ],
+        ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+      }),
+      signal: opts.signal ?? AbortSignal.timeout(timeoutMs),
+    });
+  } catch (err) {
+    // A timeout arrives as a bare TimeoutError, which callers retrying on
+    // LlmError would otherwise let escape past their retry and fallback paths.
+    if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
+      throw new LlmError(`OpenRouter did not answer within ${Math.round(timeoutMs / 1000)}s`);
+    }
+    throw new LlmError(`OpenRouter unreachable: ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");

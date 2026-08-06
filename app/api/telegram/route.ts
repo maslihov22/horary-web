@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/app/db";
 import { parseCommand, sendMessage, isBotConfigured } from "@/app/telegram";
+import { issueAccessToken } from "@/app/readings-store";
 
 // The bot's webhook. Telegram posts every update here.
 //
@@ -13,9 +14,23 @@ function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "";
 }
 
-function readingLink(id: string): string {
+/**
+ * A link the recipient can actually open.
+ *
+ * The bare address is useless from Telegram: the browser that follows it holds
+ * no cookie and cannot prove ownership. So each link carries a single-use token
+ * and points at /open, which spends it for the cookie and then redirects to the
+ * reading's clean address — the token never reaches the address bar.
+ *
+ * Without a configured site url there is no absolute address to send, and a
+ * relative one is not clickable in a chat. Better to send the bare reading link
+ * than a broken one.
+ */
+async function readingLink(id: string): Promise<string> {
   const base = siteUrl();
-  return base ? `${base}/r/${id}` : `/r/${id}`;
+  if (!base) return `/r/${id}`;
+  const token = await issueAccessToken(id);
+  return `${base}/r/${id}/open?k=${token}`;
 }
 
 const VERDICT_WORD: Record<string, string> = {
@@ -68,12 +83,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    const list = rows
-      .map((r) => {
-        const when = r.askedAt.toISOString().slice(0, 10);
-        return `${when} — <b>${VERDICT_WORD[r.verdict] ?? r.verdict}</b>\n${escapeHtml(r.question)}\n${readingLink(r.id)}`;
-      })
-      .join("\n\n");
+    const list = (
+      await Promise.all(
+        rows.map(async (r) => {
+          const when = r.askedAt.toISOString().slice(0, 10);
+          const link = await readingLink(r.id);
+          return `${when} — <b>${VERDICT_WORD[r.verdict] ?? r.verdict}</b>\n${escapeHtml(r.question)}\n${link}`;
+        }),
+      )
+    ).join("\n\n");
 
     await sendMessage(cmd.chatId, `Your readings:\n\n${list}`);
     return NextResponse.json({ ok: true });
@@ -130,9 +148,10 @@ export async function POST(req: Request) {
   }
 
   const timing = reading.timing ? `\nPerfects ${reading.timing}` : "";
+  const link = await readingLink(reading.id);
   await sendMessage(
     cmd.chatId,
-    `Kept${name}.\n\n<b>${escapeHtml(reading.question)}</b>\nJudgment: ${VERDICT_WORD[reading.verdict] ?? reading.verdict}${timing}\n\n${readingLink(reading.id)}\n\nSend /readings any time to see everything I am keeping for you.`,
+    `Kept${name}.\n\n<b>${escapeHtml(reading.question)}</b>\nJudgment: ${VERDICT_WORD[reading.verdict] ?? reading.verdict}${timing}\n\n${link}\n\nSend /readings any time to see everything I am keeping for you.`,
   );
 
   return NextResponse.json({ ok: true });
