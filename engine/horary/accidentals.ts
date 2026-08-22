@@ -215,13 +215,19 @@ export function conditionOf(planet: PlanetName, chart: Chart): SideCondition {
   if (solar === 'under-beams') afflictions.push('under-beams')
   if (isRetrograde(planet, chart)) afflictions.push('retrograde')
   if (motionSpeed(planet, chart) === 'slow') afflictions.push('slow')
-  if (strength === 'cadent') afflictions.push('cadent')
-  // The threefold division cannot say everything Lilly's table does. He
-  // debilitates a planet in the 12th by 5 and in the 8th and 6th by 2 (CA
-  // p.115) — and the 8th is SUCCEDENT, so by the division alone a significator
-  // in the house of death read as unremarkable and was reported sound. The 6th
-  // is cadent already and so already counted; only the 8th and 12th are missed.
-  if (house === 8 || house === 12) afflictions.push('in-a-house-of-debility')
+  // Whether the placement afflicts is Lilly's question to answer, not the
+  // threefold division's. The two disagree in both directions: the 8th is
+  // succedent yet he debilitates it, and the 9th and 3rd are cadent yet he
+  // fortifies them, by 2 and by 1 (CA p.115). Reading weakness off the
+  // division alone called a significator in the house of death sound, and one
+  // in the 9th "weak to act" where Lilly counts the house as help.
+  //
+  // So the grade decides, and the division keeps its own job: `strength` still
+  // reports whether the planet stands on an angle, which is true of the 9th
+  // either way.
+  if (houseFortitude(house) < 0) {
+    afflictions.push(strength === 'cadent' ? 'cadent' : 'in-a-house-of-debility')
+  }
   if (companions.some(c => c.nature === 'malefic')) afflictions.push('with-infortune')
   if (peregrine) afflictions.push('peregrine')
 
