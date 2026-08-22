@@ -1,5 +1,5 @@
-import type { Chart, Verdict, PlanetName, PlanetPos } from '../types'
-import { rulerOfHouse, essentialDignity, signOf } from './rulerships'
+import type { Chart, Verdict, PlanetName, PlanetPos, Circumstances, Obstacle } from '../types'
+import { rulerOfHouse, essentialDignity, isPeregrine, signOf } from './rulerships'
 import { normalizeDeg } from '../astro/angles'
 import { findAspect } from './aspects'
 import { reception } from './receptions'
@@ -8,6 +8,8 @@ import { estimateTiming } from './timing'
 import { findTranslation, findCollection } from './translation'
 import { findAntiscionLink } from './antiscia'
 import { isBesieged } from './besiegement'
+import { conditionOf, circumstancesOf } from './accidentals'
+import { describeObstacle } from './interpretation'
 import { findProhibition, isRefranated, moonMotion, nature } from './testimonies'
 
 const ALL_PLANETS: PlanetName[] =
@@ -26,6 +28,9 @@ const ALL_PLANETS: PlanetName[] =
 // The verdict is a qualitative reading of those facts, not a sum of points.
 export function judge(chart: Chart, quesitedHouse: number): Verdict {
   const reasons: string[] = []
+  // Collected as the judgment meets them, never searched for separately: an
+  // obstacle the judgment did not weigh has no business in the report.
+  const obstacles: Obstacle[] = []
 
   // ── 0. CONSIDERATIONS BEFORE JUDGEMENT ──────────────────────────────────────
   // Lilly, Aphorism 2: "Be not confident of the Judgment if either the 1st
@@ -71,6 +76,9 @@ export function judge(chart: Chart, quesitedHouse: number): Verdict {
         confidence: unripe ? 0.18 : 0.3,
         reasons,
         timing: null,
+        // The Moon stands for both sides here, so her condition is reported
+        // twice — that duplication IS the finding, and the caller should see it.
+        circumstances: describeFigure(chart, 'Moon', 'Moon', obstacles),
       }
     }
     querent = 'Moon'
@@ -149,6 +157,7 @@ export function judge(chart: Chart, quesitedHouse: number): Verdict {
     const prohibitor = findProhibition(qP, tP, chart)
     if (prohibitor && prohibitor !== translator) {
       destroyed = true
+      obstacles.push(describeObstacle(prohibitor, 'prohibition', chart, quesitedHouse))
       reasons.push(`${prohibitor} perfects its aspect first — prohibition. Another party steps in and the matter is hindered.`)
     }
     if (isRefranated(qP, tP)) {
@@ -209,12 +218,34 @@ export function judge(chart: Chart, quesitedHouse: number): Verdict {
     if (qDign < 0) reasons.push(`${querent} is essentially debilitated (${qDign}) — the querent's side is weak.`)
     if (tDign < 0) reasons.push(`${quesited} is essentially debilitated (${tDign}) — the quesited's side is weak.`)
 
+    // Lilly scores a peregrine planet among the debilities at the same weight
+    // as detriment (CA p.115), and presses the point in the text: "This is very
+    // much materiall in all Questions, to know the Peregrine Planet." A planet
+    // holding none of the five dignities where it stands is a stranger there,
+    // with nothing of its own to act from.
+    //
+    // Detriment and fall are reported above by essentialDignity. Peregrination
+    // is a different want — not affliction by the sign, but the absence of any
+    // footing in it — and it goes unseen by a score that reads 0 for it. It is
+    // only stated separately when the planet is not already debilitated, so
+    // that one weakness is not charged under two names.
+    const qPeregrine = isPeregrine(querent, qP.lon)
+    const tPeregrine = isPeregrine(quesited, tP.lon)
+    if (qPeregrine && qDign >= 0) reasons.push(`${querent} is peregrine — a stranger where it stands, with no dignity of its own to act from.`)
+    if (tPeregrine && tDign >= 0) reasons.push(`${quesited} is peregrine — the matter has no footing of its own.`)
+
     // Lilly: a planet hemmed in between the bodies of both infortunes "is in
     // great affliction" — it can move no way without meeting a malefic.
     const qBesieged = isBesieged(querent, chart)
     const tBesieged = isBesieged(quesited, chart)
     if (qBesieged) reasons.push(`${querent} is besieged between the two infortunes — the querent is in great affliction and hemmed in on every side.`)
     if (tBesieged) reasons.push(`${quesited} is besieged between the two infortunes — the matter itself is hemmed in and sorely afflicted.`)
+    // A siege is laid by both infortunes at once — that is what makes it a
+    // siege — so both are named, and once only however many sides they hem in.
+    if (qBesieged || tBesieged) {
+      obstacles.push(describeObstacle('Saturn', 'besieging', chart, quesitedHouse))
+      obstacles.push(describeObstacle('Mars', 'besieging', chart, quesitedHouse))
+    }
 
     // Lilly's caveat on translation: if a significator is an AFFLICTED infortune
     // (a malefic in debility) and is NOT received, the matter is destroyed even
@@ -232,7 +263,7 @@ export function judge(chart: Chart, quesitedHouse: number): Verdict {
     // impediment: it is precisely the absence of perfection, already judged.
     const impediment =
       (voidMoon && !moonIsQuerent) || moonToMalefic || qDign < 0 || tDign < 0 ||
-      qBesieged || tBesieged
+      qBesieged || tBesieged || qPeregrine || tPeregrine
 
     if (afflictedUnreceivedMalefic) {
       verdict = 'qualified'
@@ -267,5 +298,31 @@ export function judge(chart: Chart, quesitedHouse: number): Verdict {
   // exactly what this number reports.
   if (unripe) confidence = Math.round(confidence * 0.6 * 100) / 100
 
-  return { verdict, confidence, reasons, timing }
+  return {
+    verdict, confidence, reasons, timing,
+    circumstances: describeFigure(chart, querent, quesited, obstacles),
+  }
+}
+
+/**
+ * The report that travels beside the judgment.
+ *
+ * Assembled here rather than in circumstancesOf() because only the judgment
+ * knows which planets it took for the two sides — the Moon stands in for the
+ * querent where one planet ruled both houses — and the obstacles exist only as
+ * what the judgment met on its way. circumstancesOf() keeps what belongs to
+ * the figure itself, the Part of Fortune, and this widens it with the rest.
+ */
+function describeFigure(
+  chart: Chart,
+  querent: PlanetName,
+  quesited: PlanetName,
+  obstacles: Obstacle[],
+): Circumstances {
+  return {
+    ...circumstancesOf(chart),
+    querent: conditionOf(querent, chart),
+    quesited: conditionOf(quesited, chart),
+    obstacles,
+  }
 }

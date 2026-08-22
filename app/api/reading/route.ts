@@ -80,6 +80,7 @@ export async function POST(req: Request) {
       confidence: reading.verdict.confidence,
       reasons: reading.verdict.reasons,
       timing: reading.verdict.timing,
+      circumstances: reading.verdict.circumstances,
       querent: reading.querent,
       quesited: reading.quesited,
     });

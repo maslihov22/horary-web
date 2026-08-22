@@ -1,6 +1,7 @@
 import "server-only";
 import { chat, LlmError } from "./client";
 import { NARRATOR_SYSTEM, narratorInput } from "./prompts";
+import type { Circumstances } from "@/engine/types";
 
 export interface NarrateInput {
   question: string;
@@ -11,6 +12,8 @@ export interface NarrateInput {
   timing: string | null;
   querent: { planet: string; sign: string; deg: number; min: number };
   quesited: { planet: string; sign: string; deg: number; min: number };
+  /** Absent on readings cast before the engine read accidental condition. */
+  circumstances?: Circumstances | null;
 }
 
 export interface Narration {

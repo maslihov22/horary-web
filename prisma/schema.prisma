@@ -48,6 +48,12 @@ model Reading {
   timing     String?
   chart      Json
 
+  /// The condition of both sides and what stands in the way — why the matter
+  /// drags, who hinders it, on what terms it holds. Nullable because readings
+  /// cast before the engine could read a planet's accidental condition have
+  /// none, and a judgment already given is not re-judged to fit a later engine.
+  circumstances Json?
+
   /// Significators, denormalised for display.
   querentPlanet  String
   querentSign    String

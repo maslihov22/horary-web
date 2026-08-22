@@ -10,6 +10,7 @@ declare module 'astronomia' {
   export const coord: any
   export const sidereal: any
   export const nutation: any
+  export const precess: any
   export const base: any
 }
 

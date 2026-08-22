@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { db } from "./db";
 import type { Reading } from "./reading";
+import type { Verdict } from "@/engine/types";
 
 // Access model: possession, not accounts.
 //
@@ -70,6 +71,7 @@ export async function saveReading(input: SaveInput): Promise<string> {
       confidence: v.confidence,
       reasons: v.reasons,
       timing: v.timing,
+      circumstances: v.circumstances as unknown as object,
       chart: input.reading.chart as unknown as object,
       querentPlanet: input.reading.querent.planet,
       querentSign: input.reading.querent.sign,
@@ -175,6 +177,8 @@ export async function getReading(id: string): Promise<ReadingAccess> {
         confidence: row.confidence,
         reasons: row.reasons as string[],
         timing: row.timing,
+        // Readings cast before the engine read accidental condition have none.
+        circumstances: row.circumstances as unknown as Verdict["circumstances"],
       },
       chart: row.chart as unknown as Reading["chart"],
       positions: [],
