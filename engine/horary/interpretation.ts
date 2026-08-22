@@ -60,10 +60,16 @@ export function houseMeaning(
 // it stands for. The house the obstructing planet occupies answers that, read
 // through the rule above — and the meanings not chosen travel with it, so a
 // reader who knows their own case can see the reading the machine passed over.
+// Two of these describe a hindrance arriving from OUTSIDE — another planet
+// steps between the parties. The third does not: an afflicted significator is
+// not obstructed by anyone, it is itself impaired, and it IS one of the
+// parties. Wording it like the others produced "Jupiter afflicts the
+// significator" of the planet that was the significator — a party hindering
+// itself.
 const KIND_PHRASE: Record<ObstacleKind, string> = {
   prohibition: 'steps in before the matter can perfect',
   besieging: 'hems the significator in',
-  affliction: 'afflicts the significator',
+  affliction: 'is impaired',
 }
 
 export function describeObstacle(
@@ -76,6 +82,10 @@ export function describeObstacle(
   const { source, alsoMeans } = houseMeaning(house, questionHouse)
   return {
     planet, house, kind, source, alsoMeans,
-    detail: `${planet} ${KIND_PHRASE[kind]}, and stands in the house of ${source}.`,
+    detail: kind === 'affliction'
+      // The affliction reads as one clause about the party itself: it is
+      // impaired, and the impairment falls where that house falls.
+      ? `${planet} ${KIND_PHRASE[kind]}, standing in the house of ${source} — so the matter suffers from that quarter.`
+      : `${planet} ${KIND_PHRASE[kind]}, and stands in the house of ${source}.`,
   }
 }
