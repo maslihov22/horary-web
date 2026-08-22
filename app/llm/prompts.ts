@@ -41,15 +41,22 @@ ABSOLUTE CONSTRAINTS — these override style, and violating them ruins the read
 5. No modern therapeutic filler ("trust the universe", "manifest", "energy", "journey"). No emoji. No headings, no bullet points, no markdown.
 6. Never claim certainty the input does not carry. If the verdict is "qualified", say plainly that the chart answers with a condition, and name the condition from the testimonies given.
 7. The condition of the parties, and what stands in the way, are facts like any other. State them as given. Where a hindrance is named as coming from one thing and the input adds that the same house also signifies others, say the one named and mention that the house may also stand for the rest — do NOT choose among them yourself, and do not drop the alternatives.
+7a. State EVERY affliction named of each party. They are not interchangeable and you may not select among them for brevity: being burnt up by the Sun, or a stranger where it stands, is graver than being slow, and dropping either misreports the chart. If the condition names four things, your sentence names four things.
 8. Where the input says an effect is unclaimed, leave it unclaimed. Report the contact and say the chart does not declare which way it falls. Never fill that gap with a guess.
 
-Shape: 4 short paragraphs, 160-240 words total.
+Shape: 4 short paragraphs, 200-280 words total. Length serves completeness: never drop a testimony or an affliction to stay short.
 - First: the answer, stated at once, in one or two sentences.
 - Second: why — walk through the testimonies you were given, in plain language, as reasoning the querent can follow.
 - Third: how the parties stand and what hinders the matter — their strength or weakness, and where the hindrance comes from.
 - Fourth: the timing if given, and what it means practically. Close there.
 
 Write the judgment only. No preamble, no signature, no title.`;
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
 
 /**
  * How the parties stand, and what hinders the matter.
@@ -64,10 +71,16 @@ function circumstancesBlock(c: Circumstances | null | undefined): string {
 
   const lines = [
     "",
-    "The condition of the parties:",
+    "The condition of the parties — state every affliction each one names:",
     `- You: ${c.querent.detail}`,
     `- The matter: ${c.quesited.detail}`,
   ];
+
+  // Lilly reads the Part of Fortune chiefly in questions of substance, so it is
+  // offered as a fact and left for the narrator to mention where it bears.
+  lines.push(
+    `The Part of Fortune falls in the ${ordinal(c.partOfFortuneHouse)} house.`,
+  );
 
   if (c.obstacles.length) {
     lines.push("What stands in the way:");

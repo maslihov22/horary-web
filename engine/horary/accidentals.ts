@@ -191,6 +191,7 @@ const PHRASE: Record<Affliction, string> = {
   'retrograde': 'retrograde, going back over its own ground',
   'slow': 'slow in motion, dragging its business',
   'cadent': 'in a cadent house, weak to act',
+  'in-a-house-of-debility': 'in a house that weakens it',
   'with-infortune': 'in company with an infortune',
   'peregrine': 'peregrine, a stranger where it stands, with no dignity to support it',
 }
@@ -215,6 +216,12 @@ export function conditionOf(planet: PlanetName, chart: Chart): SideCondition {
   if (isRetrograde(planet, chart)) afflictions.push('retrograde')
   if (motionSpeed(planet, chart) === 'slow') afflictions.push('slow')
   if (strength === 'cadent') afflictions.push('cadent')
+  // The threefold division cannot say everything Lilly's table does. He
+  // debilitates a planet in the 12th by 5 and in the 8th and 6th by 2 (CA
+  // p.115) — and the 8th is SUCCEDENT, so by the division alone a significator
+  // in the house of death read as unremarkable and was reported sound. The 6th
+  // is cadent already and so already counted; only the 8th and 12th are missed.
+  if (house === 8 || house === 12) afflictions.push('in-a-house-of-debility')
   if (companions.some(c => c.nature === 'malefic')) afflictions.push('with-infortune')
   if (peregrine) afflictions.push('peregrine')
 

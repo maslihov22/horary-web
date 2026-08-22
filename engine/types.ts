@@ -53,7 +53,7 @@ export interface Obstacle {
 
 export type Affliction =
   | 'combust' | 'under-beams' | 'retrograde' | 'slow' | 'cadent' | 'with-infortune'
-  | 'peregrine'
+  | 'peregrine' | 'in-a-house-of-debility'
 
 export interface SideCondition {
   planet: PlanetName
