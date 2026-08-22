@@ -93,6 +93,13 @@ export interface FigureCircumstances {
  * judgment knows the latter: circumstancesOf() can read the whole chart and
  * still not say which planet stood for the querent.
  */
+export interface PlainSpeech {
+  matterRunsThrough: string
+  querentStands: string
+  howItComesAbout: string
+  whatHinders: string[]
+}
+
 export interface Circumstances extends FigureCircumstances {
   /** The querent's significator as judged — the Moon where she was taken in. */
   querent: SideCondition
@@ -103,4 +110,6 @@ export interface Circumstances extends FigureCircumstances {
    * and means nothing was found, not that nothing was looked for.
    */
   obstacles: Obstacle[]
+  /** The same figure said in ordinary words, for a querent who knows no astrology. */
+  plainSpeech: PlainSpeech
 }

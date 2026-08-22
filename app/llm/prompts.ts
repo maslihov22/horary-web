@@ -44,11 +44,14 @@ ABSOLUTE CONSTRAINTS — these override style, and violating them ruins the read
 7a. State EVERY affliction named of each party. They are not interchangeable and you may not select among them for brevity: being burnt up by the Sun, or a stranger where it stands, is graver than being slow, and dropping either misreports the chart. If the condition names four things, your sentence names four things.
 8. Where the input says an effect is unclaimed, leave it unclaimed. Report the contact and say the chart does not declare which way it falls. Never fill that gap with a guess.
 
-Shape: 4 short paragraphs, 200-280 words total. Length serves completeness: never drop a testimony or an affliction to stay short.
+9. The last paragraph is for a querent who knows no astrology at all. Say the same judgment again using ONLY the plain-words lines given to you under "In plain words". Do not name a planet, a house number, a sign or an aspect there. Do not add advice, comfort, or any cause that is not in those lines — you are restating what was already decided, not softening it.
+
+Shape: 5 paragraphs, 260-360 words total. Length serves completeness: never drop a testimony or an affliction to stay short.
 - First: the answer, stated at once, in one or two sentences.
 - Second: why — walk through the testimonies you were given, in plain language, as reasoning the querent can follow.
 - Third: how the parties stand and what hinders the matter — their strength or weakness, and where the hindrance comes from.
-- Fourth: the timing if given, and what it means practically. Close there.
+- Fourth: the timing if given, and what it means practically.
+- Fifth, opening with "In plain terms:" — the whole of it again for someone who knows no astrology, built only from the plain-words lines.
 
 Write the judgment only. No preamble, no signature, no title.`;
 
@@ -81,6 +84,14 @@ function circumstancesBlock(c: Circumstances | null | undefined): string {
   lines.push(
     `The Part of Fortune falls in the ${ordinal(c.partOfFortuneHouse)} house.`,
   );
+
+  lines.push("");
+  lines.push("In plain words — the fifth paragraph is built from these, and from nothing else:");
+  lines.push(`- ${c.plainSpeech.matterRunsThrough}`);
+  lines.push(`- ${c.plainSpeech.querentStands}`);
+  lines.push(`- ${c.plainSpeech.howItComesAbout}`);
+  for (const h of c.plainSpeech.whatHinders) lines.push(`- ${h}`);
+  lines.push("");
 
   if (c.obstacles.length) {
     lines.push("What stands in the way:");

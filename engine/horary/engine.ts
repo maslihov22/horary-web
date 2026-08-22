@@ -10,6 +10,7 @@ import { findAntiscionLink } from './antiscia'
 import { isBesieged } from './besiegement'
 import { conditionOf, circumstancesOf } from './accidentals'
 import { describeObstacle } from './interpretation'
+import { plainSpeechFor, hindranceInPlainWords, type PlainInput } from './plainspeech'
 import { findProhibition, isRefranated, moonMotion, nature } from './testimonies'
 
 const ALL_PLANETS: PlanetName[] =
@@ -78,7 +79,9 @@ export function judge(chart: Chart, quesitedHouse: number): Verdict {
         timing: null,
         // The Moon stands for both sides here, so her condition is reported
         // twice — that duplication IS the finding, and the caller should see it.
-        circumstances: describeFigure(chart, 'Moon', 'Moon', obstacles),
+        circumstances: describeFigure(chart, 'Moon', 'Moon', obstacles, quesitedHouse, {
+          perfection: null, destroyed: false, verdict: 'qualified',
+        }),
       }
     }
     querent = 'Moon'
@@ -343,7 +346,7 @@ export function judge(chart: Chart, quesitedHouse: number): Verdict {
 
   return {
     verdict, confidence, reasons, timing,
-    circumstances: describeFigure(chart, querent, quesited, obstacles),
+    circumstances: describeFigure(chart, querent, quesited, obstacles, quesitedHouse, { perfection, destroyed, verdict }),
   }
 }
 
@@ -361,11 +364,20 @@ function describeFigure(
   querent: PlanetName,
   quesited: PlanetName,
   obstacles: Obstacle[],
+  questionHouse: number,
+  plain: PlainInput,
 ): Circumstances {
+  const speech = plainSpeechFor(chart, querent, quesited, questionHouse, plain)
   return {
     ...circumstancesOf(chart),
     querent: conditionOf(querent, chart),
     quesited: conditionOf(quesited, chart),
     obstacles,
+    plainSpeech: {
+      ...speech,
+      // The hindrances are named where they were found, so they are turned into
+      // ordinary words here rather than recomputed.
+      whatHinders: obstacles.map(o => hindranceInPlainWords(o.house, questionHouse)),
+    },
   }
 }
