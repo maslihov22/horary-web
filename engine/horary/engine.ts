@@ -1,4 +1,4 @@
-import type { Chart, Verdict, PlanetName, PlanetPos, Circumstances, Obstacle } from '../types'
+import type { Chart, Verdict, PlanetName, PlanetPos, Affliction, Circumstances, Obstacle } from '../types'
 import { rulerOfHouse, essentialDignity, isPeregrine, signOf } from './rulerships'
 import { normalizeDeg } from '../astro/angles'
 import { findAspect } from './aspects'
@@ -282,6 +282,49 @@ export function judge(chart: Chart, quesitedHouse: number): Verdict {
     verdict = 'no'
     if (destroyed) reasons.push('The matter would have perfected, but a destroying testimony prevents it — the judgment is no.')
     else reasons.push('The significators do not come together by any means — the judgment is no.')
+  }
+
+  // What stands in the way, gathered for every figure rather than only for the
+  // ones that perfect. Prohibition and siege are collected above, where they
+  // are found — but they belong to charts that come together, and four figures
+  // in five do not. In those the querent's question is precisely "why", and the
+  // answer is the state of the significators themselves.
+  //
+  // Lilly reads such a hindrance by the HOUSE of the planet that carries it:
+  // separation from the lord of the 6th says the party has been sick, from the
+  // lord of the 8th that he was in danger of death, from the 12th that he was
+  // troubled in mind (Bk II). The affliction alone is half a testimony; where
+  // it comes from is the other half.
+  // Not every debility is a hindrance worth naming. Lilly weighs them, and the
+  // spread is wide: combustion and peregrination cost 5, retrogradation 5, a
+  // besieging 5 — while slow motion costs 2 and being off the angles less
+  // still. Counting every one of them would make "what stands in the way" the
+  // answer to almost every figure, which is no answer at all: a significator
+  // merely creeping along is not what denies a matter.
+  //
+  // So only his grave debilities speak here. The lighter ones remain in the
+  // condition of the parties, where they belong — they colour how a side
+  // stands, they do not obstruct it.
+  // Peregrination is deliberately absent from this list, though it is one of
+  // Lilly's heaviest debilities. It is the WANT of dignity — a planet with no
+  // footing of its own — and a want is not a hindrance: nothing is standing in
+  // the way, the side simply has nothing to act from. It is reported in the
+  // condition of that side, which is where it belongs. Kept here it would have
+  // spoken in half of all figures on its own and drowned the real obstructions.
+  const GRAVE: Affliction[] = [
+    'combust', 'retrograde', 'with-infortune', 'in-a-house-of-debility',
+  ]
+
+  // And nothing is said to stand in the way of a matter that comes together
+  // unhindered. Where the significators perfect and no testimony destroys it,
+  // a weak side is a weak side, not an obstruction.
+  const matterIsObstructed = !perfection || destroyed
+  if (matterIsObstructed) {
+    for (const planet of [querent, quesited] as const) {
+      const condition = conditionOf(planet, chart)
+      if (!condition.afflictions.some(a => GRAVE.includes(a))) continue
+      obstacles.push(describeObstacle(planet, 'affliction', chart, quesitedHouse))
+    }
   }
 
   const timing = (perfection && verdict !== 'no')
